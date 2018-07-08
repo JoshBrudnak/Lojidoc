@@ -25,18 +25,52 @@ struct Method {
 
 struct Class {
     package_name: String,
+    access: String,
     class_name: String,
     description: String,
     methods: Vec<Method>,
 }
 
+struct ParseState {
+    class: bool,
+    method: bool,
+    doc: bool,
+}
+
+impl Class {
+    fn ch_access(&mut self, value: String) {
+        self.access = value;
+    }
+    fn ch_package_name(&mut self, value: String) {
+        self.package_name = value;
+    }
+    fn ch_class_name(&mut self, value: String) {
+        self.class_name = value;
+    }
+    fn ch_description(&mut self, value: String) {
+        self.description = value;
+    }
+}
+
+impl ParseState {
+    fn ch_class(&mut self, value: bool) {
+        self.class = value;
+    }
+    fn ch_method(&mut self, value: bool) {
+        self.method = value;
+    }
+    fn ch_doc(&mut self, value: bool) {
+        self.doc = value;
+    }
+}
+
 enum LineType {
-    Class,
-    Method,
-    Comment,
-    Startdoc,
-    Enddoc,
-    Other,
+    IsClass,
+    IsMethod,
+    IsComment,
+    IsStartdoc,
+    IsEnddoc,
+    IsOther,
 }
 
 fn regex_match(text: &str, regex_str: &str) -> bool {
@@ -45,48 +79,96 @@ fn regex_match(text: &str, regex_str: &str) -> bool {
     reg.is_match(text)
 }
 
-fn determine_line_type(line: String) -> LineType {
-    let method_match = "(public|protected|private|static|\\s) +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\) *(\\{?|[^;])";
-    let start_doc_match = "(\\/\\*\\*)";
-    let end_doc_match = "(\\*\\*\\/)";
-    let comment_match = "(\\/\\/)";
-
-    if line.contains("class ") {
-        LineType::Class
-    } else if regex_match(&line, method_match) {
-        LineType::Method
-    } else if regex_match(&line, start_doc_match) {
-        LineType::Startdoc
-    } else if regex_match(&line, end_doc_match) {
-        LineType::Enddoc
-    } else if regex_match(&line, comment_match) {
-        LineType::Comment
+fn start_doc_match(text: &String) -> bool {
+    if text.contains(r"/**") {
+        return true;
     } else {
-        LineType::Other
+        return false;
     }
 }
 
-fn parse_file(path: PathBuf) {
-    use LineType::{Class, Comment, Enddoc, Method, Other, Startdoc};
+fn end_doc_match(text: &String) -> bool {
+    if text.contains(r"**/") {
+        return true;
+    } else if text.contains(r"*/") {
+        return true;
+    } else {
+        return false;
+    }
+}
 
-    let path_str = path.as_path();
-    let mut file = File::open(path_str).expect("File not found");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
-        .expect("Cannot read file");
+fn determine_line_type(line: &String) -> LineType {
+    let method_match = r"(public|protected|private|static|\s) +[\w\[\]]+\s+(\w+) *\([^\)]*\)";
 
-    let mut buf = BufReader::new(file);
-    let mut done = false;
+    if line.contains("class ") {
+        LineType::IsClass
+    } else if regex_match(&line, method_match) {
+        LineType::IsMethod
+    } else if start_doc_match(&line) {
+        LineType::IsStartdoc
+    } else if end_doc_match(&line) {
+        LineType::IsEnddoc
+    } else if line.contains("//") {
+        LineType::IsComment
+    } else {
+        LineType::IsOther
+    }
+}
 
-    while !done {
-        if buf.fill_buf().unwrap().len() > 0 {
-            let mut line = String::new();
-            let len = buf.read_line(&mut line);
-            let line_type = determine_line_type(line);
+fn handle_class(mut class: Class, mut state: ParseState, line: &String) -> Class {
+    let access_match = r"(public|protected|private)";
+    let split = line.split(" ");
+    let parts: Vec<&str> = split.collect();
+
+    for (num, class_part) in parts.iter().enumerate() {
+        if regex_match(&class_part, access_match) {
+            class.ch_access(class_part.clone().to_string());
+        } else if class_part.contains("class") {
+            class.ch_class_name(parts[num + 1].to_string());
         }
     }
 
-    println!("{}", &contents);
+    state.ch_class(true);
+
+    return class;
+}
+
+fn parse_file(path: PathBuf) {
+    use LineType::{IsClass, IsComment, IsEnddoc, IsMethod, IsOther, IsStartdoc};
+
+    let path_str = path.as_path();
+    let file = File::open(path_str).expect("File not found");
+    let buf = BufReader::new(&file);
+    let mut class = Class {
+        package_name: String::from(""),
+        access: String::from("public"),
+        class_name: String::from(""),
+        description: String::from(""),
+        methods: Vec::new(),
+    };
+
+    let mut parse_state = ParseState {
+        class: false,
+        method: false,
+        doc: false,
+    };
+
+    for line in buf.lines() {
+        let l = line.unwrap();
+        println!("{}", l);
+        let line_type = determine_line_type(&l);
+
+        match line_type {
+            IsClass => class = handle_class(class, parse_state, &l),
+            IsMethod => println!("Method"),
+            IsComment => println!("Comment"),
+            IsStartdoc => println!("Startdoc"),
+            IsEnddoc => println!("Enddoc"),
+            IsOther => println!("something else"),
+        }
+    }
+
+    // println!("{}", &contents);
 }
 
 fn traverse_project(start_dir: &Path) {
