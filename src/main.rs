@@ -4,6 +4,7 @@ use regex::Regex;
 use std::env;
 use std::fs;
 use std::fs::File;
+use std::io::prelude::*;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
@@ -269,14 +270,15 @@ fn parse_file(path: PathBuf) -> Class {
 
     for line in buf.lines() {
         let l = line.unwrap();
-        println!("{}", l);
         let line_type = determine_line_type(&l);
         let mut doc_buffer: Vec<String> = Vec::new();
 
         match line_type {
             IsClass => {
-                class = handle_class(class, &l);
-                parse_state.ch_class(true);
+                if !parse_state.class {
+                    class = handle_class(class, &l);
+                    parse_state.ch_class(true);
+                }
             }
             IsMethod => {
                 if parse_state.doc_ready {
@@ -321,7 +323,7 @@ fn parse_file(path: PathBuf) -> Class {
     return class;
 }
 
-fn traverse_project(start_dir: &Path) {
+fn get_jdocs(start_dir: &Path) -> Vec<Class> {
     let mut classes: Vec<Class> = Vec::new();
 
     for f in fs::read_dir(start_dir).unwrap() {
@@ -332,13 +334,45 @@ fn traverse_project(start_dir: &Path) {
             classes.push(new_class);
         } else {
             let path = p.as_path();
-            traverse_project(path);
+            get_jdocs(path);
         }
+    }
+
+    return classes;
+}
+
+fn generate_markdown(classes: Vec<Class>) {
+    for class in classes {
+        let name = format!("{}.{}", class.class_name, "md");
+        let mut file = File::create(name).unwrap();
+
+        let file_title = format!("# {}\n", class.class_name);
+        file.write(file_title.as_bytes()).unwrap();
+
+        for member in class.methods {
+            let method_name = format!("## {}\n", member.name);
+            let method_privacy = format!("privacy: {}\n", member.privacy);
+            let method_desc = format!("description: {}\n", member.description);
+            let method_return = format!("return: {}\n", member.return_type);
+
+            file.write(method_name.as_bytes()).unwrap();
+            file.write(method_privacy.as_bytes()).unwrap();
+            file.write(method_desc.as_bytes()).unwrap();
+            file.write_all(method_return.as_bytes()).unwrap();
+
+            for param in member.parameters {
+                let method_name = format!("- parameter: {} {}\n", param.name, param.desc);
+                file.write_all(method_name.as_bytes()).unwrap();
+            }
+        }
+
+        println!("{} was created", file_title);
     }
 }
 
 fn main() {
     let dir = env::args().nth(1).expect("Missing argument");
     println!("Generating documentation from {}", dir);
-    traverse_project(&Path::new(&dir));
+    let docs = get_jdocs(&Path::new(&dir));
+    generate_markdown(docs);
 }
