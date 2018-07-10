@@ -63,6 +63,24 @@ impl Class {
     }
 }
 
+impl Method {
+    fn ch_privacy(&mut self, value: String) {
+        self.privacy = value;
+    }
+    fn ch_method_name(&mut self, value: String) {
+        self.name = value;
+    }
+    fn ch_description(&mut self, value: String) {
+        self.description = value;
+    }
+    fn add_param(&mut self, value: Param) {
+        self.parameters.push(value);
+    }
+    fn ch_return_type(&mut self, value: String) {
+        self.return_type = value;
+    }
+}
+
 impl ParseState {
     fn ch_class(&mut self, value: bool) {
         self.class = value;
@@ -167,20 +185,23 @@ fn handle_class(mut class: Class, line: &String) -> Class {
     return class;
 }
 
-fn handle_method(mut class: Class, line: &String) -> Class {
+fn handle_method(mut method: Method, line: &String) -> Method {
     let access_match = r"(public|protected|private)";
     let split = line.split(" ");
     let parts: Vec<&str> = split.collect();
 
-    for (num, class_part) in parts.iter().enumerate() {
-        if regex_match(&class_part, access_match) {
-            class.ch_access(class_part.clone().to_string());
-        } else if class_part.contains("class") {
-            class.ch_class_name(parts[num + 1].to_string());
+    for (num, method_part) in parts.iter().enumerate() {
+        if regex_match(&method_part, access_match) {
+            method.ch_privacy(method_part.clone().to_string());
+        } else if method_part.contains("(") {
+            let name_split = method_part.split("(");
+            let name_parts: Vec<&str> = name_split.collect();
+
+            method.ch_method_name(name_parts[0].to_string());
         }
     }
 
-    return class;
+    return method;
 }
 
 fn doc_desc(parts: &Vec<&str>) -> String {
@@ -200,37 +221,37 @@ fn handle_doc(buffer: Vec<String>) -> Doc {
     let mut parameters: Vec<Param> = Vec::new();
 
     for line in buffer {
-        let line = line.split("* ").collect::<Vec<&str>>()[0];
-        if line.contains("@param") {
-            let split = line.split(" ");
-            let parts: Vec<&str> = split.collect();
+        let line_vec: Vec<&str> = line.split("* ").collect::<Vec<&str>>();
 
-            if parts.len() == 2 {
-                parameters.push(Param {
-                    name: parts[1].to_string(),
-                    desc: String::from(""),
-                })
-            } else if parts.len() > 2 {
-                let description = doc_desc(&parts[2..].to_vec());
+        if line_vec.len() > 1 {
+            let line = line_vec[1];
 
-                parameters.push(Param {
-                    name: parts[1].to_string(),
-                    desc: description,
-                })
-            }
-        } else if line.contains("@return") {
-            let split = line.split(" ");
-            let parts: Vec<&str> = split.collect();
+            if line.contains("@param") {
+                let split = line.split(" ");
+                let parts: Vec<&str> = split.collect();
 
-            if parts.len() > 1 {
-                return_str = doc_desc(&parts[1..].to_vec());
-            }
-        } else if !line.contains("@") {
-            let split = line.split(" ");
-            let parts: Vec<&str> = split.collect();
+                if parts.len() == 2 {
+                    parameters.push(Param {
+                        name: parts[1].to_string(),
+                        desc: String::from(""),
+                    })
+                } else if parts.len() > 2 {
+                    let description = doc_desc(&parts[2..].to_vec());
 
-            if parts.len() > 1 {
-                desc = doc_desc(&parts);
+                    parameters.push(Param {
+                        name: parts[1].to_string(),
+                        desc: description,
+                    })
+                }
+            } else if line.contains("@return") {
+                let split = line.split(" ");
+                let parts: Vec<&str> = split.collect();
+
+                if parts.len() > 1 {
+                    return_str = doc_desc(&parts[1..].to_vec());
+                }
+            } else if !line.contains("@") {
+                desc = line.to_string();
             }
         }
     }
@@ -248,6 +269,7 @@ fn parse_file(path: PathBuf) -> Class {
     let path_str = path.as_path();
     let file = File::open(path_str).expect("File not found");
     let buf = BufReader::new(&file);
+
     let mut class = Class {
         package_name: String::from(""),
         access: String::from("public"),
@@ -281,24 +303,27 @@ fn parse_file(path: PathBuf) -> Class {
                 }
             }
             IsMethod => {
+                let mut j_method = Method {
+                    parameters: Vec::new(),
+                    name: String::from(""),
+                    privacy: String::from(""),
+                    description: String::from(""),
+                    return_type: String::from(""),
+                };
+
                 if parse_state.doc_ready {
-                    let mut new_params: Vec<Param> = Vec::new();
+                    j_method.ch_description(jdoc.description.clone());
+                    j_method.ch_return_type(jdoc.return_desc.clone());
 
                     for i in 0..jdoc.params.len() {
-                        new_params.push(jdoc.params[i].clone());
+                        j_method.add_param(jdoc.params[i].clone());
                     }
-
-                    let j_method = Method {
-                        parameters: new_params,
-                        name: String::from(""),
-                        privacy: String::from(""),
-                        description: jdoc.description.clone(),
-                        return_type: jdoc.return_desc.clone(),
-                    };
-
-                    class.add_method(j_method);
-                    parse_state.ch_doc_ready(false);
                 }
+
+                j_method = handle_method(j_method, &l);
+
+                class.add_method(j_method);
+                parse_state.ch_doc_ready(false);
             }
             IsComment => println!("Comment"),
             IsStartdoc => {
@@ -346,14 +371,16 @@ fn generate_markdown(classes: Vec<Class>) {
         let name = format!("{}.{}", class.class_name, "md");
         let mut file = File::create(name).unwrap();
 
-        let file_title = format!("# {}\n", class.class_name);
+        let file_title = format!("# {}\n\n", class.class_name);
+        let file_access = format!("privacy: {}\n\n", class.access.trim());
         file.write(file_title.as_bytes()).unwrap();
+        file.write(file_access.as_bytes()).unwrap();
 
         for member in class.methods {
-            let method_name = format!("## {}\n", member.name);
-            let method_privacy = format!("privacy: {}\n", member.privacy);
+            let method_name = format!("## {}\n\n", member.name);
+            let method_privacy = format!("privacy: {}\n", member.privacy.trim());
             let method_desc = format!("description: {}\n", member.description);
-            let method_return = format!("return: {}\n", member.return_type);
+            let method_return = format!("return: {}\n\n", member.return_type);
 
             file.write(method_name.as_bytes()).unwrap();
             file.write(method_privacy.as_bytes()).unwrap();
@@ -363,10 +390,12 @@ fn generate_markdown(classes: Vec<Class>) {
             for param in member.parameters {
                 let method_name = format!("- parameter: {} {}\n", param.name, param.desc);
                 file.write_all(method_name.as_bytes()).unwrap();
+                file.write_all(b"\n").unwrap();
             }
         }
 
-        println!("{} was created", file_title);
+        let class_name = format!("{}.{}", class.class_name, "md");
+        println!("{} was created", class_name);
     }
 }
 
