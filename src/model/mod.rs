@@ -7,6 +7,10 @@ pub struct Param {
 pub struct Doc {
     pub params: Vec<Param>,
     pub description: String,
+    pub author: String,
+    pub version: String,
+    pub exceptions: Vec<String>,
+    pub deprecated: String,
     pub return_desc: String,
 }
 
@@ -15,6 +19,7 @@ pub struct Method {
     pub parameters: Vec<Param>,
     pub name: String,
     pub privacy: String,
+    pub exceptions: Vec<String>,
     pub description: String,
     pub return_type: String,
 }
@@ -22,7 +27,10 @@ pub struct Method {
 #[derive(Debug)]
 pub struct Class {
     pub package_name: String,
+    pub deprecation: String,
     pub access: String,
+    pub version: String,
+    pub author: String,
     pub class_name: String,
     pub description: String,
     pub dependencies: Vec<String>,
@@ -50,6 +58,15 @@ impl Class {
     pub fn ch_description(&mut self, value: String) {
         self.description = value;
     }
+    pub fn ch_deprecation(&mut self, value: String) {
+        self.deprecation = value;
+    }
+    pub fn ch_version(&mut self, value: String) {
+        self.deprecation = value;
+    }
+    pub fn ch_author(&mut self, value: String) {
+        self.author = value;
+    }
     pub fn add_method(&mut self, value: Method) {
         self.methods.push(value);
     }
@@ -67,6 +84,9 @@ impl Method {
     }
     pub fn ch_description(&mut self, value: String) {
         self.description = value;
+    }
+    pub fn add_exception(&mut self, value: String) {
+        self.exceptions.push(value);
     }
     pub fn add_param(&mut self, value: Param) {
         self.parameters.push(value);

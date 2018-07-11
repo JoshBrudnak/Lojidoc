@@ -9,11 +9,11 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub use self::model::LineType;
 pub use self::model::Class;
+pub use self::model::Doc;
+pub use self::model::LineType;
 pub use self::model::Method;
 pub use self::model::Param;
-pub use self::model::Doc;
 pub use self::model::ParseState;
 pub use self::parse::parse_file;
 
@@ -63,7 +63,8 @@ fn generate_markdown(classes: Vec<Class>) {
             doc.push_str("\n");
         }
 
-        file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
+        file.write(doc.as_str().as_bytes())
+            .expect("Not able to write to file");
         println!("{}.{} was created", class.class_name, "md");
     }
 }

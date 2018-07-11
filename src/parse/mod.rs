@@ -6,11 +6,11 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-pub use model::LineType;
 pub use model::Class;
+pub use model::Doc;
+pub use model::LineType;
 pub use model::Method;
 pub use model::Param;
-pub use model::Doc;
 pub use model::ParseState;
 
 fn regex_match(text: &str, regex_str: &str) -> bool {
@@ -109,6 +109,10 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
     let mut return_str = String::from("");
     let mut desc = String::from("");
     let mut parameters: Vec<Param> = Vec::new();
+    let mut author = String::new();
+    let mut version = String::new();
+    let mut deprecated = String::new();
+    let mut except: Vec<String> = Vec::new();
 
     for line in buffer {
         let line_vec: Vec<&str> = line.split("* ").collect::<Vec<&str>>();
@@ -127,6 +131,7 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
                     })
                 } else if parts.len() > 2 {
                     let description = doc_desc(&parts[2..].to_vec());
+                    println!("{}", description);
 
                     parameters.push(Param {
                         name: parts[1].to_string(),
@@ -140,8 +145,36 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
                 if parts.len() > 1 {
                     return_str = doc_desc(&parts[1..].to_vec());
                 }
+            } else if line.contains("@author") {
+                let split = line.split(" ");
+                let parts: Vec<&str> = split.collect();
+
+                if parts.len() > 1 {
+                    author = doc_desc(&parts[1..].to_vec());
+                }
+            } else if line.contains("@expeption") {
+                let split = line.split(" ");
+                let parts: Vec<&str> = split.collect();
+
+                if parts.len() > 1 {
+                    except.push(doc_desc(&parts[1..].to_vec()));
+                }
+            } else if line.contains("@version") {
+                let split = line.split(" ");
+                let parts: Vec<&str> = split.collect();
+
+                if parts.len() > 1 {
+                    version = doc_desc(&parts[1..].to_vec());
+                }
+            } else if line.contains("@deprecated") {
+                let split = line.split(" ");
+                let parts: Vec<&str> = split.collect();
+
+                if parts.len() > 1 {
+                    deprecated = doc_desc(&parts[1..].to_vec());
+                }
             } else if !line.contains("@") {
-                desc = line.to_string();
+                desc.push_str(format!("  {}\n", line.trim()).as_str());
             }
         }
     }
@@ -150,11 +183,17 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
         params: parameters,
         description: desc,
         return_desc: return_str,
+        author: author,
+        version: version,
+        exceptions: except,
+        deprecated: deprecated,
     }
 }
 
 pub fn parse_file(path: PathBuf) -> Class {
-    use LineType::{IsImport, IsPackage, IsClass, IsComment, IsEnddoc, IsMethod, IsOther, IsStartdoc};
+    use LineType::{
+        IsClass, IsComment, IsEnddoc, IsImport, IsMethod, IsOther, IsPackage, IsStartdoc,
+    };
 
     let path_str = path.as_path();
     let file = File::open(path_str).expect("File not found");
@@ -164,7 +203,10 @@ pub fn parse_file(path: PathBuf) -> Class {
     let mut class = Class {
         package_name: String::from(""),
         dependencies: Vec::new(),
+        deprecation: String::from(""),
         access: String::from(""),
+        version: String::from(""),
+        author: String::from(""),
         class_name: String::from(""),
         description: String::from(""),
         methods: Vec::new(),
@@ -180,6 +222,10 @@ pub fn parse_file(path: PathBuf) -> Class {
         params: Vec::new(),
         description: String::from(""),
         return_desc: String::from(""),
+        author: String::from(""),
+        version: String::from(""),
+        exceptions: Vec::new(),
+        deprecated: String::from(""),
     };
 
     for line in buf.lines() {
@@ -212,12 +258,18 @@ pub fn parse_file(path: PathBuf) -> Class {
             IsClass => {
                 if !parse_state.class {
                     class = handle_class(class, &l);
+                    if parse_state.doc_ready {
+                        class.ch_author(jdoc.author.clone());
+                        class.ch_version(jdoc.version.clone());
+                        class.ch_deprecation(jdoc.deprecated.clone());
+                    }
                     parse_state.ch_class(true);
                 }
             }
             IsMethod => {
                 let mut j_method = Method {
                     parameters: Vec::new(),
+                    exceptions: Vec::new(),
                     name: String::from(""),
                     privacy: String::from(""),
                     description: String::from(""),
@@ -231,6 +283,10 @@ pub fn parse_file(path: PathBuf) -> Class {
                     for i in 0..jdoc.params.len() {
                         j_method.add_param(jdoc.params[i].clone());
                     }
+
+                    for i in 0..jdoc.exceptions.len() {
+                        j_method.add_exception(jdoc.exceptions[i].clone());
+                    }
                 }
 
                 j_method = handle_method(j_method, &l);
@@ -238,7 +294,7 @@ pub fn parse_file(path: PathBuf) -> Class {
                 class.add_method(j_method);
                 parse_state.ch_doc_ready(false);
             }
-            IsComment => println!("Comment"),
+            IsComment => {}
             IsStartdoc => {
                 doc_buffer.clear();
                 parse_state.ch_doc(true);
