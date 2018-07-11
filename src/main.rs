@@ -10,6 +10,7 @@ use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 struct Param {
     desc: String,
     name: String,
@@ -21,6 +22,7 @@ struct Doc {
     return_desc: String,
 }
 
+#[derive(Debug)]
 struct Method {
     parameters: Vec<Param>,
     name: String,
@@ -29,11 +31,13 @@ struct Method {
     return_type: String,
 }
 
+#[derive(Debug)]
 struct Class {
     package_name: String,
     access: String,
     class_name: String,
     description: String,
+    dependencies: Vec<String>,
     methods: Vec<Method>,
 }
 
@@ -60,6 +64,9 @@ impl Class {
     }
     fn add_method(&mut self, value: Method) {
         self.methods.push(value);
+    }
+    fn add_dependency(&mut self, value: String) {
+        self.dependencies.push(value);
     }
 }
 
@@ -119,6 +126,8 @@ impl Param {
 }
 
 enum LineType {
+    IsPackage,
+    IsImport,
     IsClass,
     IsMethod,
     IsComment,
@@ -154,8 +163,12 @@ fn end_doc_match(text: &String) -> bool {
 fn determine_line_type(line: &String) -> LineType {
     let method_match = r"(public|protected|private|static|\s) +[\w\[\]]+\s+(\w+) *\([^\)]*\)";
 
-    if line.contains("class ") {
+    if line.contains("package ") {
+        LineType::IsPackage
+    } else if line.contains("class ") {
         LineType::IsClass
+    } else if line.contains("import ") {
+        LineType::IsImport
     } else if regex_match(&line, method_match) {
         LineType::IsMethod
     } else if start_doc_match(&line) {
@@ -215,7 +228,7 @@ fn doc_desc(parts: &Vec<&str>) -> String {
     return description;
 }
 
-fn handle_doc(buffer: Vec<String>) -> Doc {
+fn handle_doc(buffer: &Vec<String>) -> Doc {
     let mut return_str = String::from("");
     let mut desc = String::from("");
     let mut parameters: Vec<Param> = Vec::new();
@@ -264,15 +277,17 @@ fn handle_doc(buffer: Vec<String>) -> Doc {
 }
 
 fn parse_file(path: PathBuf) -> Class {
-    use LineType::{IsClass, IsComment, IsEnddoc, IsMethod, IsOther, IsStartdoc};
+    use LineType::{IsImport, IsPackage, IsClass, IsComment, IsEnddoc, IsMethod, IsOther, IsStartdoc};
 
     let path_str = path.as_path();
     let file = File::open(path_str).expect("File not found");
     let buf = BufReader::new(&file);
+    let mut doc_buffer: Vec<String> = Vec::new();
 
     let mut class = Class {
         package_name: String::from(""),
-        access: String::from("public"),
+        dependencies: Vec::new(),
+        access: String::from(""),
         class_name: String::from(""),
         description: String::from(""),
         methods: Vec::new(),
@@ -293,9 +308,30 @@ fn parse_file(path: PathBuf) -> Class {
     for line in buf.lines() {
         let l = line.unwrap();
         let line_type = determine_line_type(&l);
-        let mut doc_buffer: Vec<String> = Vec::new();
 
         match line_type {
+            IsPackage => {
+                let split = l.split(" ");
+                let parts: Vec<&str> = split.collect();
+
+                for (num, w) in parts.iter().enumerate() {
+                    if w.contains("package") {
+                        let mut pack_name = &parts[num + 1].trim();
+                        class.ch_package_name(pack_name.to_string().replace(";", ""));
+                    }
+                }
+            }
+            IsImport => {
+                let split = l.split(" ");
+                let mut parts: Vec<&str> = split.collect();
+
+                for (num, w) in parts.iter().enumerate() {
+                    if w.contains("import") {
+                        let mut im_name = &parts[num + 1].trim();
+                        class.add_dependency(im_name.to_string().replace(";", ""));
+                    }
+                }
+            }
             IsClass => {
                 if !parse_state.class {
                     class = handle_class(class, &l);
@@ -327,12 +363,12 @@ fn parse_file(path: PathBuf) -> Class {
             }
             IsComment => println!("Comment"),
             IsStartdoc => {
-                doc_buffer = Vec::new();
+                doc_buffer.clear();
                 parse_state.ch_doc(true);
             }
             IsEnddoc => {
                 if parse_state.doc {
-                    jdoc = handle_doc(doc_buffer);
+                    jdoc = handle_doc(&doc_buffer);
                     parse_state.ch_doc(false);
                     parse_state.ch_doc_ready(true);
                 }
@@ -345,7 +381,7 @@ fn parse_file(path: PathBuf) -> Class {
         }
     }
 
-    return class;
+    class
 }
 
 fn get_jdocs(start_dir: &Path) -> Vec<Class> {
@@ -371,13 +407,23 @@ fn generate_markdown(classes: Vec<Class>) {
         let name = format!("{}.{}", class.class_name, "md");
         let mut file = File::create(name).unwrap();
 
-        let file_title = format!("# {}\n\n", class.class_name);
-        let file_access = format!("privacy: {}\n\n", class.access.trim());
-        file.write(file_title.as_bytes()).unwrap();
-        file.write(file_access.as_bytes()).unwrap();
+        let class_name = format!("# {}\n\n", class.class_name);
+        let class_access = format!("privacy: {}\n", class.access.trim());
+        let class_package = format!("package: {}\n\n", class.package_name.trim());
+        file.write(class_name.as_bytes()).unwrap();
+        file.write(class_access.as_bytes()).unwrap();
+        file.write(class_package.as_bytes()).unwrap();
+        file.write(b"## Dependencies\n\n").unwrap();
+
+        for dep in class.dependencies {
+            let class_dep = format!("- {}\n", dep);
+            file.write(class_dep.as_bytes()).unwrap();
+        }
+
+        file.write(b"\n## Methods\n\n").unwrap();
 
         for member in class.methods {
-            let method_name = format!("## {}\n\n", member.name);
+            let method_name = format!("#### {}\n\n", member.name);
             let method_privacy = format!("privacy: {}\n", member.privacy.trim());
             let method_desc = format!("description: {}\n", member.description);
             let method_return = format!("return: {}\n\n", member.return_type);
