@@ -1,7 +1,7 @@
 [package]
 name = "Javadoc_to_Markdown"
 version = "0.1.0"
-authors = ["josh <joshuabrudnak@oakland.edu>"]
+authors = ["josh <jobrud314@gmail.com>"]
 
 [dependencies]
 regex = "0.1.41"

@@ -399,7 +399,7 @@ fn get_jdocs(start_dir: &Path) -> Vec<Class> {
         }
     }
 
-    return classes;
+    classes
 }
 
 fn generate_markdown(classes: Vec<Class>) {
@@ -407,41 +407,31 @@ fn generate_markdown(classes: Vec<Class>) {
         let name = format!("{}.{}", class.class_name, "md");
         let mut file = File::create(name).unwrap();
 
-        let class_name = format!("# {}\n\n", class.class_name);
-        let class_access = format!("privacy: {}\n", class.access.trim());
-        let class_package = format!("package: {}\n\n", class.package_name.trim());
-        file.write(class_name.as_bytes()).unwrap();
-        file.write(class_access.as_bytes()).unwrap();
-        file.write(class_package.as_bytes()).unwrap();
-        file.write(b"## Dependencies\n\n").unwrap();
+        let mut doc = format!("# {}\n\n", class.class_name);
+        doc.push_str(format!("privacy: {}\n", class.access.trim()).as_str());
+        doc.push_str(format!("package: {}\n\n", class.package_name.trim()).as_str());
+        doc.push_str("## Dependencies\n\n");
 
         for dep in class.dependencies {
-            let class_dep = format!("- {}\n", dep);
-            file.write(class_dep.as_bytes()).unwrap();
+            doc.push_str(format!("- {}\n", dep).as_str());
         }
-
-        file.write(b"\n## Methods\n\n").unwrap();
+        doc.push_str("\n## Methods\n\n");
 
         for member in class.methods {
-            let method_name = format!("#### {}\n\n", member.name);
-            let method_privacy = format!("privacy: {}\n", member.privacy.trim());
-            let method_desc = format!("description: {}\n", member.description);
-            let method_return = format!("return: {}\n\n", member.return_type);
-
-            file.write(method_name.as_bytes()).unwrap();
-            file.write(method_privacy.as_bytes()).unwrap();
-            file.write(method_desc.as_bytes()).unwrap();
-            file.write_all(method_return.as_bytes()).unwrap();
+            doc.push_str(format!("#### {}\n", member.name).as_str());
+            doc.push_str(format!("privacy: {}\n", member.privacy.trim()).as_str());
+            doc.push_str(format!("description: {}\n", member.description).as_str());
+            doc.push_str(format!("return: {}\n", member.return_type).as_str());
 
             for param in member.parameters {
-                let method_name = format!("- parameter: {} {}\n", param.name, param.desc);
-                file.write_all(method_name.as_bytes()).unwrap();
-                file.write_all(b"\n").unwrap();
+                doc.push_str(format!("- parameter: {} {}\n", param.name, param.desc).as_str());
             }
+
+            doc.push_str("\n");
         }
 
-        let class_name = format!("{}.{}", class.class_name, "md");
-        println!("{} was created", class_name);
+        file.write_all(doc.as_str().as_bytes()).expect("Not able to write to file");
+        println!("{}.{} was created", class.class_name, "md");
     }
 }
 
