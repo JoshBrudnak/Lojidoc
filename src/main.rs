@@ -1,5 +1,4 @@
 extern crate regex;
-#[macro_use]
 extern crate clap;
 
 mod model;
@@ -7,7 +6,6 @@ mod parse;
 
 use clap::App;
 use clap::Arg;
-use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -44,12 +42,18 @@ fn get_jdocs(start_dir: &Path) -> Vec<Class> {
     classes
 }
 
-fn generate_markdown(classes: Vec<Class>) {
+fn generate_markdown(classes: Vec<Class>, dest: &str) {
+    fs::create_dir_all(dest).expect("File path not able to be created");
+
     for class in classes {
-        let name = format!("{}.{}", class.class_name, "md");
+        let name = format!("{}/{}.{}", dest, class.class_name, "md");
         let mut file = File::create(name).unwrap();
 
         let mut doc = format!("# {}\n\n", class.class_name);
+
+        if class.description.as_str() != "" {
+            doc.push_str(format!("description: {}\n", class.description.trim()).as_str());
+        }
         doc.push_str(format!("privacy: {}\n", class.access.trim()).as_str());
         doc.push_str(format!("package: {}\n\n", class.package_name.trim()).as_str());
         doc.push_str("## Dependencies\n\n");
@@ -65,8 +69,14 @@ fn generate_markdown(classes: Vec<Class>) {
             doc.push_str(format!("description: {}\n", member.description).as_str());
             doc.push_str(format!("return: {}\n", member.return_type).as_str());
 
+            if member.parameters.len() > 0 {
+                doc.push_str("| Name | Description |\n|_____|_____|\n");
+            } else {
+                doc.push_str("This method has no parameters.");
+            }
+
             for param in member.parameters {
-                doc.push_str(format!("- parameter: {} {}\n", param.name, param.desc).as_str());
+                doc.push_str(format!("| {} | {} |\n", param.name, param.desc).as_str());
             }
 
             doc.push_str("\n");
@@ -94,13 +104,15 @@ fn main() {
                                .short("v")
                                .help("Generate verbose documentation for a project"))
                           .arg(Arg::with_name("destination")
+                               .value_name("FILE")
                                .short("d")
                                .help("Sets the destination directory of the created markdown files"))
                           .get_matches();
 
     let dir = matches.value_of("INPUT").expect("Documentation directory not chosen");
+    let dest = matches.value_of("destination").expect("Destination directory not chosen");
 
     println!("Generating documentation from {}", dir);
     let docs = get_jdocs(&Path::new(&dir));
-    generate_markdown(docs);
+    generate_markdown(docs, dest);
 }

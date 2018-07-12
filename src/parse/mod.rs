@@ -258,12 +258,15 @@ pub fn parse_file(path: PathBuf) -> Class {
             IsClass => {
                 if !parse_state.class {
                     class = handle_class(class, &l);
+
                     if parse_state.doc_ready {
+                        class.ch_description(jdoc.description.clone());
                         class.ch_author(jdoc.author.clone());
                         class.ch_version(jdoc.version.clone());
                         class.ch_deprecation(jdoc.deprecated.clone());
                     }
                     parse_state.ch_class(true);
+                    parse_state.ch_doc_ready(false);
                 }
             }
             IsMethod => {
