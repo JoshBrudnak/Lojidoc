@@ -4,7 +4,7 @@ use regex::Regex;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub use model::Class;
 pub use model::Doc;
@@ -190,13 +190,12 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
     }
 }
 
-pub fn parse_file(path: PathBuf) -> Class {
+pub fn parse_file(path: &Path) -> Class {
     use LineType::{
         IsClass, IsComment, IsEnddoc, IsImport, IsMethod, IsOther, IsPackage, IsStartdoc,
     };
 
-    let path_str = path.as_path();
-    let file = File::open(path_str).expect("File not found");
+    let file = File::open(path).expect("File not found");
     let buf = BufReader::new(&file);
     let mut doc_buffer: Vec<String> = Vec::new();
 
