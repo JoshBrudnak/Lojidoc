@@ -131,7 +131,6 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
                     })
                 } else if parts.len() > 2 {
                     let description = doc_desc(&parts[2..].to_vec());
-                    println!("{}", description);
 
                     parameters.push(Param {
                         name: parts[1].to_string(),

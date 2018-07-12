@@ -23,6 +23,17 @@ pub use self::model::Param;
 pub use self::model::ParseState;
 pub use self::parse::parse_file;
 
+fn is_java_file(file: &str) -> bool {
+    let line_vec: Vec<&str> = file.split(".").collect::<Vec<&str>>();
+    let l_index = line_vec.len() - 1;
+
+    if line_vec[l_index].contains("java") {
+        true
+    } else {
+        false
+    }
+}
+
 /// Traverses the file structure to find all java files for parsing.
 ///
 /// # Arguments
@@ -34,15 +45,17 @@ fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     for f in fs::read_dir(start_dir).unwrap() {
         let p = f.unwrap().path();
 
-        if p.extension().unwrap_or("".as_ref()) == "java" {
-            files.push(p);
-        } else {
+        if p.is_dir() {
             let path = p.as_path();
-            find_java_files(path);
+            files = find_java_files(path);
+        } else if p.is_file() {
+            if is_java_file(p.as_path().file_name().unwrap().to_str().unwrap()) {
+                files.push(p.clone());
+            }
         }
     }
 
-    files
+    files.clone()
 }
 
 fn generate_markdown(class: Class, dest: &str) {
@@ -148,5 +161,9 @@ fn main() {
 
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
 
-    document(file_paths, dest);
+    if file_paths.len() > 0 {
+        document(file_paths, dest);
+    } else {
+        println!("No java files found");
+    }
 }
