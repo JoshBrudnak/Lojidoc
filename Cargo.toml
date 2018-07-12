@@ -6,3 +6,4 @@ authors = ["josh <jobrud314@gmail.com>"]
 [dependencies]
 regex = "0.1.41"
 lazy_static = "1.0.1"
+clap = "2.32"

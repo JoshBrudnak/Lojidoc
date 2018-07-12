@@ -1,8 +1,12 @@
 extern crate regex;
+#[macro_use]
+extern crate clap;
 
 mod model;
 mod parse;
 
+use clap::App;
+use clap::Arg;
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -17,6 +21,11 @@ pub use self::model::Param;
 pub use self::model::ParseState;
 pub use self::parse::parse_file;
 
+/// Traverses the file structure to find all java files for parsing.
+///
+/// # Arguments
+///
+/// * `start_dir` - The directory to start looking for java files in.
 fn get_jdocs(start_dir: &Path) -> Vec<Class> {
     let mut classes: Vec<Class> = Vec::new();
 
@@ -70,7 +79,27 @@ fn generate_markdown(classes: Vec<Class>) {
 }
 
 fn main() {
-    let dir = env::args().nth(1).expect("Missing argument");
+    let matches = App::new("Javadoc-To-Markdown")
+                          .version("1.0")
+                          .author("Josh Brudnak <jobrud314@gmail.com>")
+                          .about("A tool for generating markdown documentation from javadocs")
+                          .arg(Arg::with_name("INPUT")
+                               .value_name("FILE")
+                               .help("Sets the input directory to use")
+                               .index(1))
+                          .arg(Arg::with_name("context")
+                               .help("Sets the context path of the project")
+                               .short("c"))
+                          .arg(Arg::with_name("verbose")
+                               .short("v")
+                               .help("Generate verbose documentation for a project"))
+                          .arg(Arg::with_name("destination")
+                               .short("d")
+                               .help("Sets the destination directory of the created markdown files"))
+                          .get_matches();
+
+    let dir = matches.value_of("INPUT").expect("Documentation directory not chosen");
+
     println!("Generating documentation from {}", dir);
     let docs = get_jdocs(&Path::new(&dir));
     generate_markdown(docs);
