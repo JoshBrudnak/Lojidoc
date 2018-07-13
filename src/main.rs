@@ -81,15 +81,15 @@ fn generate_markdown(class: Class, dest: &str) {
     doc.push_str("\n## Methods\n\n");
 
     for member in class.methods {
-        doc.push_str(format!("#### {}\n", member.name).as_str());
+        doc.push_str(format!("#### {}\n\n", member.name).as_str());
         doc.push_str(format!("privacy: {}\n", member.privacy.trim()).as_str());
         doc.push_str(format!("description: {}\n", member.description).as_str());
-        doc.push_str(format!("return: {}\n", member.return_type).as_str());
+        doc.push_str(format!("return: {}\n\n", member.return_type).as_str());
 
         if member.parameters.len() > 0 {
             doc.push_str("| Name | Description |\n|_____|_____|\n");
         } else {
-            doc.push_str("This method has no parameters.");
+            doc.push_str("This method has no parameters.\n");
         }
 
         for param in member.parameters {

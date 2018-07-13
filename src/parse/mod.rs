@@ -1,17 +1,17 @@
 extern crate regex;
 
-use regex::Regex;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::path::Path;
-use std::str::SplitWhitespace;
 pub use model::Class;
 pub use model::Doc;
 pub use model::LineType;
 pub use model::Method;
 pub use model::Param;
 pub use model::ParseState;
+
+use regex::Regex;
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::path::Path;
 
 fn regex_match(text: &str, regex_str: &str) -> bool {
     let reg = Regex::new(regex_str).unwrap();
@@ -104,15 +104,41 @@ fn handle_method(mut method: Method, line: &String) -> Method {
     return method;
 }
 
-fn doc_desc(parts: &Vec<&str>) -> String {
-    let mut description = String::from("");
+fn doc_desc(parts: &Vec<String>) -> String {
+    let mut description = String::new();
 
     for i in 0..parts.len() {
-        description.push_str(" ");
-        description.push_str(parts[i]);
+        description.push_str(format!("{} ", parts[i].as_str()).as_str());
     }
 
-    return description;
+    description
+}
+
+fn trim_whitespace(line: String) -> Vec<String> {
+    let sub_strs: Vec<&str> = line.split(" ").collect();
+    let mut trimmed: Vec<String> = Vec::new();
+
+    for sub in sub_strs {
+        let bytes: Vec<u8> = sub.to_string().into_bytes();
+        let mut new_str: Vec<u8> = Vec::new();
+
+        for b in bytes {
+            if b > 32 {
+                new_str.push(b);
+            }
+        }
+
+        if new_str.len() == 1 {
+            // If the line has an individual asterisk it ignores it
+            if new_str[0] == 42 {
+                continue;
+            }
+        } else if new_str.len() > 0 {
+            trimmed.push(unsafe { String::from_utf8_unchecked(new_str) });
+        }
+    }
+
+    trimmed
 }
 
 fn handle_doc(buffer: &Vec<String>) -> Doc {
@@ -125,66 +151,41 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
     let mut except: Vec<String> = Vec::new();
 
     for line in buffer {
-        let line_vec: Vec<&str> = line.split("* ").collect::<Vec<&str>>();
-        //let line_vec: Vec<&str> = line.split_whitespace();
+        let mut line_vec: Vec<String> = trim_whitespace(line.to_string());
 
         if line_vec.len() > 1 {
-            let line = line_vec[1];
+            let len = line_vec.len();
 
-            if line.contains("@param") {
-                let split = line.split(" ");
-                let parts: Vec<&str> = split.collect();
+            if len > 1 {
+                if line.contains("@param") {
+                    if len == 2 {
+                        parameters.push(Param {
+                            name: line_vec[1].clone(),
+                            desc: String::from(""),
+                        })
+                    } else if len > 2 {
+                        let description = doc_desc(&line_vec[1..].to_vec());
 
-                if parts.len() == 2 {
-                    parameters.push(Param {
-                        name: parts[1].to_string(),
-                        desc: String::from(""),
-                    })
-                } else if parts.len() > 2 {
-                    let description = doc_desc(&parts[2..].to_vec());
-
-                    parameters.push(Param {
-                        name: parts[1].to_string(),
-                        desc: description,
-                    })
+                        parameters.push(Param {
+                            name: line_vec[2].clone(),
+                            desc: description,
+                        })
+                    }
+                } else if line.contains("@return") {
+                    return_str = doc_desc(&line_vec[1..].to_vec());
+                } else if line.contains("@author") {
+                    author = doc_desc(&line_vec[1..].to_vec());
+                } else if line.contains("@expeption") {
+                    except.push(doc_desc(&line_vec[1..].to_vec()));
+                } else if line.contains("@version") {
+                    version = doc_desc(&line_vec[1..].to_vec());
+                } else if line.contains("@deprecated") {
+                    deprecated = doc_desc(&line_vec[1..].to_vec());
                 }
-            } else if line.contains("@return") {
-                let split = line.split(" ");
-                let parts: Vec<&str> = split.collect();
+            }
 
-                if parts.len() > 1 {
-                    return_str = doc_desc(&parts[1..].to_vec());
-                }
-            } else if line.contains("@author") {
-                let split = line.split(" ");
-                let parts: Vec<&str> = split.collect();
-
-                if parts.len() > 1 {
-                    author = doc_desc(&parts[1..].to_vec());
-                }
-            } else if line.contains("@expeption") {
-                let split = line.split(" ");
-                let parts: Vec<&str> = split.collect();
-
-                if parts.len() > 1 {
-                    except.push(doc_desc(&parts[1..].to_vec()));
-                }
-            } else if line.contains("@version") {
-                let split = line.split(" ");
-                let parts: Vec<&str> = split.collect();
-
-                if parts.len() > 1 {
-                    version = doc_desc(&parts[1..].to_vec());
-                }
-            } else if line.contains("@deprecated") {
-                let split = line.split(" ");
-                let parts: Vec<&str> = split.collect();
-
-                if parts.len() > 1 {
-                    deprecated = doc_desc(&parts[1..].to_vec());
-                }
-            } else if !line.contains("@") {
-                desc.push_str(format!("  {}\n", line.trim()).as_str());
+            if !line.contains("@") {
+                desc.push_str(format!(" {} ", doc_desc(&line_vec[1..].to_vec())).as_str());
             }
         }
     }
