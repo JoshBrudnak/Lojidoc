@@ -106,16 +106,25 @@ fn generate_markdown(class: Class, dest: &str) {
 
 fn document(file_paths: Vec<PathBuf>, dest: String) {
     let files = Arc::new(file_paths);
-    let pool = ThreadPool::new(files.len());
+    let size = files.len();
+    let mut pool_size = size / 4;
+    if files.len() % 4 != 0 {
+        pool_size += 1;
+    }
+    let pool = ThreadPool::new(pool_size);
     let safe_dest = Arc::new(dest);
 
-    for i in 0..files.len() {
-        let file_cp = files[i].clone();
+    for i in 0..pool_size {
+        let file_cp = files.clone();
         let new_dest = safe_dest.clone();
 
         pool.execute(move || {
-            let class = parse_file(&file_cp);
-            generate_markdown(class, new_dest.as_str());
+            for j in 0..3 {
+                if (i * 4) + j < size {
+                    let class = parse_file(&file_cp[(i * 4) + j]);
+                    generate_markdown(class, new_dest.as_str());
+                }
+            }
         });
     }
 
