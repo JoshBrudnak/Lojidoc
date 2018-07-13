@@ -47,7 +47,11 @@ fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
 
         if p.is_dir() {
             let path = p.as_path();
-            files = find_java_files(path);
+            let new_files = find_java_files(path);
+
+            for n_file in new_files {
+                files.push(n_file.clone());
+            }
         } else if p.is_file() {
             if is_java_file(p.as_path().file_name().unwrap().to_str().unwrap()) {
                 files.push(p.clone());
@@ -126,6 +130,7 @@ fn main() {
         .arg(
             Arg::with_name("INPUT")
                 .value_name("FILE")
+                .required(true)
                 .help("Sets the input directory to use")
                 .index(1),
         )
@@ -141,6 +146,7 @@ fn main() {
         )
         .arg(
             Arg::with_name("destination")
+                .required(false)
                 .value_name("FILE")
                 .short("d")
                 .help("Sets the destination directory of the created markdown files"),

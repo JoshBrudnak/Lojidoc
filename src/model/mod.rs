@@ -41,6 +41,7 @@ pub struct ParseState {
     pub class: bool,
     pub method: bool,
     pub doc: bool,
+    pub comment: bool,
     pub doc_ready: bool,
     pub block_depth: i32,
 }

@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
-
+use std::str::SplitWhitespace;
 pub use model::Class;
 pub use model::Doc;
 pub use model::LineType;
@@ -27,6 +27,14 @@ fn start_doc_match(text: &String) -> bool {
     }
 }
 
+fn start_comment_match(text: &String) -> bool {
+    if text.contains(r"/*") && !text.contains("/**") {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 fn end_doc_match(text: &String) -> bool {
     if text.contains(r"**/") {
         return true;
@@ -37,18 +45,20 @@ fn end_doc_match(text: &String) -> bool {
     }
 }
 
-fn determine_line_type(line: &String) -> LineType {
+fn determine_line_type(line: &String, state: &ParseState) -> LineType {
     let method_match = r"(public|protected|private|static|\s) +[\w\[\]]+\s+(\w+) *\([^\)]*\)";
 
     if line.contains("package ") {
         LineType::IsPackage
-    } else if line.contains("class ") {
+    } else if line.contains("class ") && !state.comment && !state.doc {
         LineType::IsClass
     } else if line.contains("import ") {
         LineType::IsImport
     } else if regex_match(&line, method_match) {
         LineType::IsMethod
     } else if start_doc_match(&line) {
+        LineType::IsStartdoc
+    } else if start_comment_match(&line) {
         LineType::IsStartdoc
     } else if end_doc_match(&line) {
         LineType::IsEnddoc
@@ -116,6 +126,7 @@ fn handle_doc(buffer: &Vec<String>) -> Doc {
 
     for line in buffer {
         let line_vec: Vec<&str> = line.split("* ").collect::<Vec<&str>>();
+        //let line_vec: Vec<&str> = line.split_whitespace();
 
         if line_vec.len() > 1 {
             let line = line_vec[1];
@@ -213,6 +224,7 @@ pub fn parse_file(path: &Path) -> Class {
         class: false,
         method: false,
         doc: false,
+        comment: false,
         doc_ready: false,
         block_depth: 0,
     };
@@ -228,7 +240,7 @@ pub fn parse_file(path: &Path) -> Class {
 
     for line in buf.lines() {
         let l = line.unwrap();
-        let line_type = determine_line_type(&l);
+        let line_type = determine_line_type(&l, &parse_state);
 
         match line_type {
             IsPackage => {
