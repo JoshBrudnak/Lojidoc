@@ -15,13 +15,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use threadpool::ThreadPool;
 
-pub use self::model::Class;
-pub use self::model::Doc;
-pub use self::model::LineType;
-pub use self::model::Method;
-pub use self::model::Param;
-pub use self::model::ParseState;
-pub use self::parse::parse_file;
+use model::model::Class;
+use model::model::LineType;
+use parse::parse::parse_file;
 
 fn is_java_file(file: &str) -> bool {
     let line_vec: Vec<&str> = file.split(".").collect::<Vec<&str>>();
@@ -39,7 +35,7 @@ fn is_java_file(file: &str) -> bool {
 /// # Arguments
 ///
 /// * `start_dir` - The directory to start looking for java files in.
-fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
+pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = Vec::new();
 
     for f in fs::read_dir(start_dir).unwrap() {
@@ -62,7 +58,14 @@ fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     files.clone()
 }
 
-fn generate_markdown(class: Class, dest: &str) {
+/// Generates a markdown file for a java file
+/// Uses a Class struct to write the markdown
+///
+/// # Arguments
+///
+/// * `class` - The class struct containing the java documentation data
+/// * `dest` - The file path where the markdown file will be saved
+pub fn generate_markdown(class: Class, dest: &str) {
     let name = format!("{}/{}.{}", dest, class.class_name, "md");
     let mut file = File::create(name).unwrap();
 
@@ -104,7 +107,13 @@ fn generate_markdown(class: Class, dest: &str) {
     println!("{}.{} was created", class.class_name, "md");
 }
 
-fn document(file_paths: Vec<PathBuf>, dest: String) {
+/// Handles the thread pooling the application
+///
+/// # Arguments
+///
+/// * `file_paths` - A vector of the file paths of java files
+/// * `dest` - The file path where the markdown will be saved
+pub fn document(file_paths: Vec<PathBuf>, dest: String) {
     let files = Arc::new(file_paths);
     let size = files.len();
     let mut pool_size = size / 4;
