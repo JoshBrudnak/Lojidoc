@@ -88,23 +88,38 @@ pub mod parse {
         return class;
     }
 
-    fn handle_method(mut method: Method, line: &String) -> Method {
+    fn handle_method(line: &String) -> Result<Method, &str> {
         let access_match = r"(public|protected|private)";
         let parts = trim_whitespace(line);
 
-        for method_part in parts {
+        let mut method = Method {
+            parameters: Vec::new(),
+            exceptions: Vec::new(),
+            name: String::from(""),
+            privacy: String::from(""),
+            description: String::from(""),
+            return_type: String::from(""),
+        };
+
+        println!("{:?}", parts);
+        for (i, method_part) in parts.iter().enumerate() {
             if regex_match(&method_part, access_match) {
                 method.ch_privacy(method_part.clone().to_string());
             } else if method_part.contains("(") {
                 let name_split = method_part.split("(");
                 let name_parts: Vec<&str> = name_split.collect();
+
+                let mut params: Vec<Param> = Vec::new();
+                if !method_part.contains(")") {
+                    for j in i..parts.len() {}
+                }
                 println!("{:?}", name_parts);
 
                 method.ch_method_name(name_parts[0].to_string());
             }
         }
 
-        return method;
+        Ok(method)
     }
 
     fn doc_desc(parts: &Vec<String>) -> String {
@@ -171,6 +186,7 @@ pub mod parse {
                             parameters.push(Param {
                                 name: line_vec[1].clone(),
                                 desc: String::from(""),
+                                var_type: String::new(),
                             })
                         } else if len > 2 {
                             let description = doc_desc(&line_vec[1..].to_vec());
@@ -178,6 +194,7 @@ pub mod parse {
                             parameters.push(Param {
                                 name: line_vec[2].clone(),
                                 desc: description,
+                                var_type: String::new(),
                             })
                         }
                     } else if line.contains("@return") {
@@ -290,31 +307,26 @@ pub mod parse {
                     }
                 }
                 IsMethod => {
-                    let mut j_method = Method {
-                        parameters: Vec::new(),
-                        exceptions: Vec::new(),
-                        name: String::from(""),
-                        privacy: String::from(""),
-                        description: String::from(""),
-                        return_type: String::from(""),
-                    };
+                    let method_res = handle_method(&l);
 
-                    if parse_state.doc_ready {
-                        j_method.ch_description(jdoc.description.clone());
-                        j_method.ch_return_type(jdoc.return_desc.clone());
+                    if method_res.is_ok() {
+                        let mut j_method = method_res.unwrap();
 
-                        for i in 0..jdoc.params.len() {
-                            j_method.add_param(jdoc.params[i].clone());
+                        if parse_state.doc_ready {
+                            j_method.ch_description(jdoc.description.clone());
+                            j_method.ch_return_type(jdoc.return_desc.clone());
+
+                            for i in 0..jdoc.params.len() {
+                                j_method.add_param(jdoc.params[i].clone());
+                            }
+
+                            for i in 0..jdoc.exceptions.len() {
+                                j_method.add_exception(jdoc.exceptions[i].clone());
+                            }
                         }
 
-                        for i in 0..jdoc.exceptions.len() {
-                            j_method.add_exception(jdoc.exceptions[i].clone());
-                        }
+                        class.add_method(j_method);
                     }
-
-                    j_method = handle_method(j_method, &l);
-
-                    class.add_method(j_method);
                     parse_state.ch_doc_ready(false);
                 }
                 IsComment => {}

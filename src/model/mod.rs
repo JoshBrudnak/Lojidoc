@@ -5,6 +5,7 @@ pub mod model {
     pub struct Param {
         pub desc: String,
         pub name: String,
+        pub var_type: String,
     }
 
     /// Struct representing data contained in javadoc comments
@@ -134,10 +135,12 @@ pub mod model {
         pub fn clone(&mut self) -> Param {
             let new_desc = self.desc.clone();
             let new_name = self.name.clone();
+            let new_type = self.var_type.clone();
 
             Param {
                 desc: new_desc,
                 name: new_name,
+                var_type: new_type,
             }
         }
     }
@@ -154,11 +157,12 @@ pub mod model {
         IsOther,
     }
 
-    enum ParseError {
+    pub enum ParseError {
+        NoError,
         NotMethod,
         IncorrectSyntax,
     }
 
     /// Used for handling method parsing results
-    pub type ParseResult = Result<Method, ParseError>;
+    pub type MethodResult = Result<Method, ParseError>;
 }
