@@ -42,6 +42,11 @@ pub mod parse {
         }
     }
 
+    fn trim_paren(part: String) -> String {
+        let no_paren: Vec<&str> = part.split(&[')', '{'][..]).collect();
+        no_paren.join("")
+    }
+
     /// Determines the line type of a line of java code
     ///
     /// # Arguments
@@ -101,19 +106,36 @@ pub mod parse {
             return_type: String::from(""),
         };
 
-        println!("{:?}", parts);
         for (i, method_part) in parts.iter().enumerate() {
             if regex_match(&method_part, access_match) {
                 method.ch_privacy(method_part.clone().to_string());
             } else if method_part.contains("(") {
-                let name_split = method_part.split("(");
-                let name_parts: Vec<&str> = name_split.collect();
+                let name_parts: Vec<&str> = method_part.split("(").collect();
+                let mut param_def = false;
+                let mut param_type = String::new();
 
-                let mut params: Vec<Param> = Vec::new();
-                if !method_part.contains(")") {
-                    for j in i..parts.len() {}
+                if name_parts[1] != "" {
+                    param_type = name_parts[1].to_string();
+                    param_def = true;
                 }
-                println!("{:?}", name_parts);
+                for j in (i + 1)..parts.len() {
+                    let mut meth_part = parts[j].clone();
+                    if parts[j].contains(")") {
+                        meth_part = trim_paren(meth_part);
+                    }
+
+                    if param_def {
+                        method.add_param(Param {
+                            desc: String::new(),
+                            var_type: param_type.clone(),
+                            name: meth_part,
+                        });
+                        param_def = false;
+                    } else {
+                        param_type = meth_part;
+                        param_def = true;
+                    }
+                }
 
                 method.ch_method_name(name_parts[0].to_string());
             }
@@ -227,6 +249,22 @@ pub mod parse {
         }
     }
 
+    fn match_params(params: &Vec<Param>, jparams: &Vec<Param>) {
+        let mut new_param: Vec<Param> = Vec::new();
+        for mut param in params {
+            for i in 0..jparams.len() {
+                if param.name == jparams[i].name {
+                    new_param.push(Param {
+                        name: param.name.clone(),
+                        var_type: param.var_type.clone(),
+                        desc: jparams[i].desc.clone(),
+                    });
+                    println!("Same {:?}", param);
+                }
+            }
+        }
+    }
+
     pub fn parse_file(path: &Path) -> Class {
         use LineType::{
             IsClass, IsComment, IsEnddoc, IsImport, IsMethod, IsOther, IsPackage, IsStartdoc,
@@ -315,6 +353,7 @@ pub mod parse {
                         if parse_state.doc_ready {
                             j_method.ch_description(jdoc.description.clone());
                             j_method.ch_return_type(jdoc.return_desc.clone());
+                            match_params(&j_method.parameters, &jdoc.params);
 
                             for i in 0..jdoc.params.len() {
                                 j_method.add_param(jdoc.params[i].clone());

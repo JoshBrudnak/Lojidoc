@@ -143,6 +143,9 @@ pub mod model {
                 var_type: new_type,
             }
         }
+        pub fn ch_desc(&mut self, value: String) {
+            self.desc = value;
+        }
     }
 
     /// Enum that is used to determine the line type for each line
