@@ -109,6 +109,8 @@ pub mod parse {
         for (i, method_part) in parts.iter().enumerate() {
             if regex_match(&method_part, access_match) {
                 method.ch_privacy(method_part.clone().to_string());
+            } else if method_part.contains("void") {
+                method.ch_return_type("void".to_string());
             } else if method_part.contains("(") {
                 let name_parts: Vec<&str> = method_part.split("(").collect();
                 let mut param_def = false;
@@ -168,7 +170,7 @@ pub mod parse {
             let mut new_str: Vec<u8> = Vec::new();
 
             for b in bytes {
-                if b > 32 {
+                if b > 32 && b != 44 {
                     new_str.push(b);
                 }
             }
@@ -211,10 +213,10 @@ pub mod parse {
                                 var_type: String::new(),
                             })
                         } else if len > 2 {
-                            let description = doc_desc(&line_vec[1..].to_vec());
+                            let description = doc_desc(&line_vec[2..].to_vec());
 
                             parameters.push(Param {
-                                name: line_vec[2].clone(),
+                                name: line_vec[1].clone(),
                                 desc: description,
                                 var_type: String::new(),
                             })
@@ -233,7 +235,7 @@ pub mod parse {
                 }
 
                 if !line.contains("@") {
-                    desc.push_str(format!(" {} ", doc_desc(&line_vec[1..].to_vec())).as_str());
+                    desc.push_str(format!(" {} ", doc_desc(&line_vec)).as_str());
                 }
             }
         }
@@ -260,18 +262,17 @@ pub mod parse {
                         var_type: param.var_type.clone(),
                         desc: jparams[i].desc.clone(),
                     });
-                    println!("Same {:?}", param);
                     found = true;
                 }
             }
 
             if !found {
-                    new_param.push(Param {
-                        name: param.name.clone(),
-                        var_type: param.var_type.clone(),
-                        desc: "No description found".to_string(),
-                    });
-                    println!("missing javadoc parameter: {}", param.name);
+                new_param.push(Param {
+                    name: param.name.clone(),
+                    var_type: param.var_type.clone(),
+                    desc: "No description found".to_string(),
+                });
+                //println!("missing javadoc parameter: {}", param.name);
             }
         }
 
@@ -367,7 +368,8 @@ pub mod parse {
                             j_method.ch_description(jdoc.description.clone());
                             j_method.ch_return_type(jdoc.return_desc.clone());
 
-                            let n_params: Vec<Param> = match_params(&j_method.parameters, &jdoc.params);
+                            let n_params: Vec<Param> =
+                                match_params(&j_method.parameters, &jdoc.params);
                             j_method.ch_params(n_params);
 
                             for i in 0..jdoc.exceptions.len() {

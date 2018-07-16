@@ -72,34 +72,47 @@ pub fn generate_markdown(class: Class, dest: &str) {
     let mut doc = format!("# {}\n\n", class.class_name);
 
     if class.description.as_str() != "" {
-        doc.push_str(format!("description: {}\n", class.description.trim()).as_str());
+        doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
     }
-    doc.push_str(format!("privacy: {}\n", class.access.trim()).as_str());
-    doc.push_str(format!("package: {}\n\n", class.package_name.trim()).as_str());
+    doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
+    doc.push_str(format!("package: {}  \n\n", class.package_name.trim()).as_str());
     doc.push_str("## Dependencies\n\n");
+    doc.push_str("<details>  \n");
+    doc.push_str("  <summary>  \n");
+    doc.push_str("    Show dependencies  \n");
+    doc.push_str("  </summary>  \n");
 
+    doc.push_str("  <ul>  \n");
     for dep in class.dependencies {
-        doc.push_str(format!("- {}\n", dep).as_str());
+        doc.push_str(format!("<li>{}</li>\n", dep).as_str());
     }
-    doc.push_str("\n## Methods\n\n");
+    doc.push_str("  </ul>  \n");
+    doc.push_str("</details>  \n\n");
+    doc.push_str("## Methods\n\n");
 
     for member in class.methods {
-        doc.push_str(format!("#### {}\n\n", member.name).as_str());
-        doc.push_str(format!("privacy: {}\n", member.privacy.trim()).as_str());
-        doc.push_str(format!("description: {}\n", member.description).as_str());
-        doc.push_str(format!("return: {}\n\n", member.return_type).as_str());
+        doc.push_str(format!("### {}\n\n", member.name).as_str());
+        doc.push_str(format!("privacy: {}  \n", member.privacy.trim()).as_str());
+        doc.push_str(format!("description: {}  \n", member.description).as_str());
+        doc.push_str(format!("return: {}  \n\n", member.return_type).as_str());
 
         if member.parameters.len() > 0 {
-            doc.push_str("| Name | Type | Description |\n|_____|_____|_____|\n");
+            doc.push_str("| Name | Type | Description |  \n");
+            doc.push_str("| ----- | ----- | ----- |  \n");
         } else {
-            doc.push_str("This method has no parameters.\n");
+            doc.push_str("This method has no parameters.  \n");
         }
 
         for param in member.parameters {
-            doc.push_str(format!("| {} | {} | {} |\n", param.name, param.var_type, param.desc).as_str());
+            doc.push_str(
+                format!(
+                    "| {} | {} | {} |  \n",
+                    param.name, param.var_type, param.desc
+                ).as_str(),
+            );
         }
 
-        doc.push_str("\n");
+        doc.push_str("\n\n");
     }
 
     file.write(doc.as_str().as_bytes())
