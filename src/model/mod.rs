@@ -101,6 +101,9 @@ pub mod model {
         pub fn add_param(&mut self, value: Param) {
             self.parameters.push(value);
         }
+        pub fn ch_params(&mut self, value: Vec<Param>) {
+            self.parameters = value;
+        }
         pub fn ch_return_type(&mut self, value: String) {
             self.return_type = value;
         }

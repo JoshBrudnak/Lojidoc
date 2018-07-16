@@ -249,9 +249,10 @@ pub mod parse {
         }
     }
 
-    fn match_params(params: &Vec<Param>, jparams: &Vec<Param>) {
+    fn match_params(params: &Vec<Param>, jparams: &Vec<Param>) -> Vec<Param> {
         let mut new_param: Vec<Param> = Vec::new();
         for mut param in params {
+            let mut found = false;
             for i in 0..jparams.len() {
                 if param.name == jparams[i].name {
                     new_param.push(Param {
@@ -260,9 +261,21 @@ pub mod parse {
                         desc: jparams[i].desc.clone(),
                     });
                     println!("Same {:?}", param);
+                    found = true;
                 }
             }
+
+            if !found {
+                    new_param.push(Param {
+                        name: param.name.clone(),
+                        var_type: param.var_type.clone(),
+                        desc: "No description found".to_string(),
+                    });
+                    println!("missing javadoc parameter: {}", param.name);
+            }
         }
+
+        new_param
     }
 
     pub fn parse_file(path: &Path) -> Class {
@@ -353,11 +366,9 @@ pub mod parse {
                         if parse_state.doc_ready {
                             j_method.ch_description(jdoc.description.clone());
                             j_method.ch_return_type(jdoc.return_desc.clone());
-                            match_params(&j_method.parameters, &jdoc.params);
 
-                            for i in 0..jdoc.params.len() {
-                                j_method.add_param(jdoc.params[i].clone());
-                            }
+                            let n_params: Vec<Param> = match_params(&j_method.parameters, &jdoc.params);
+                            j_method.ch_params(n_params);
 
                             for i in 0..jdoc.exceptions.len() {
                                 j_method.add_exception(jdoc.exceptions[i].clone());

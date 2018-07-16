@@ -90,13 +90,13 @@ pub fn generate_markdown(class: Class, dest: &str) {
         doc.push_str(format!("return: {}\n\n", member.return_type).as_str());
 
         if member.parameters.len() > 0 {
-            doc.push_str("| Name | Description |\n|_____|_____|\n");
+            doc.push_str("| Name | Type | Description |\n|_____|_____|_____|\n");
         } else {
             doc.push_str("This method has no parameters.\n");
         }
 
         for param in member.parameters {
-            doc.push_str(format!("| {} | {} |\n", param.name, param.desc).as_str());
+            doc.push_str(format!("| {} | {} | {} |\n", param.name, param.var_type, param.desc).as_str());
         }
 
         doc.push_str("\n");
@@ -177,7 +177,7 @@ fn main() {
         .to_string();
     let dest = matches
         .value_of("destination")
-        .expect("Destination directory not chosen")
+        .unwrap_or("./generated/")
         .to_string();
 
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
