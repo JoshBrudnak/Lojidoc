@@ -37,8 +37,13 @@ fn is_java_file(file: &str) -> bool {
 /// * `start_dir` - The directory to start looking for java files in.
 pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = Vec::new();
+    let file_dir = fs::read_dir(start_dir);
 
-    for f in fs::read_dir(start_dir).unwrap() {
+    if !file_dir.is_ok() {
+        return files.clone();
+    }
+
+    for f in file_dir.unwrap() {
         let p = f.unwrap().path();
 
         if p.is_dir() {
@@ -76,6 +81,15 @@ pub fn generate_markdown(class: Class, dest: &str) {
     }
     doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
     doc.push_str(format!("package: {}  \n\n", class.package_name.trim()).as_str());
+
+    if !class.exception.is_empty() {
+        doc.push_str(
+            format!(
+                "Throws {}: {}  \n\n",
+                class.exception.exception_type, class.exception.desc
+            ).as_str(),
+        );
+    }
     doc.push_str("## Dependencies\n\n");
     doc.push_str("<details>  \n");
     doc.push_str("  <summary>  \n");
@@ -94,6 +108,15 @@ pub fn generate_markdown(class: Class, dest: &str) {
         doc.push_str(format!("### {}\n\n", member.name).as_str());
         doc.push_str(format!("privacy: {}  \n", member.privacy.trim()).as_str());
         doc.push_str(format!("description: {}  \n", member.description).as_str());
+
+        if !member.exception.is_empty() {
+            doc.push_str(
+                format!(
+                    "Throws {}: {}  \n",
+                    member.exception.exception_type, member.exception.desc
+                ).as_str(),
+            );
+        }
         doc.push_str(format!("return: {}  \n\n", member.return_type).as_str());
 
         if member.parameters.len() > 0 {

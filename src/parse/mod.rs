@@ -86,7 +86,13 @@ pub mod parse {
             if regex_match(&class_part, access_match) {
                 class.ch_access(class_part.clone().to_string());
             } else if class_part.contains("class") {
-                class.ch_class_name(parts[num + 1].to_string());
+                if parts.len() > num + 1 {
+                    class.ch_class_name(parts[num + 1].to_string());
+                }
+            } else if class_part.contains("exception") {
+                if parts.len() > num + 1 {
+                    class.ch_class_name(parts[num + 1].to_string());
+                }
             }
         }
 
@@ -96,21 +102,21 @@ pub mod parse {
     fn handle_method(line: &String) -> Result<Method, &str> {
         let access_match = r"(public|protected|private)";
         let parts = trim_whitespace(line);
-
-        let mut method = Method {
-            parameters: Vec::new(),
-            exceptions: Vec::new(),
-            name: String::from(""),
-            privacy: String::from(""),
-            description: String::from(""),
-            return_type: String::from(""),
-        };
+        let mut method = Method::new();
 
         for (i, method_part) in parts.iter().enumerate() {
             if regex_match(&method_part, access_match) {
                 method.ch_privacy(method_part.clone().to_string());
             } else if method_part.contains("void") {
                 method.ch_return_type("void".to_string());
+            } else if method_part.contains("exception") {
+                if parts.len() > i + 1 {
+                    let ex = Exception {
+                        exception_type: String::new(),
+                        desc: parts[i + 1].to_string(),
+                    };
+                    method.ch_exception(ex);
+                }
             } else if method_part.contains("(") {
                 let name_parts: Vec<&str> = method_part.split("(").collect();
                 let mut param_def = false;
@@ -196,7 +202,7 @@ pub mod parse {
         let mut author = String::new();
         let mut version = String::new();
         let mut deprecated = String::new();
-        let mut except: Vec<String> = Vec::new();
+        let mut except = Exception::new();
 
         for line in buffer {
             let mut line_vec: Vec<String> = trim_whitespace(&line.to_string());
@@ -226,7 +232,21 @@ pub mod parse {
                     } else if line.contains("@author") {
                         author = doc_desc(&line_vec[1..].to_vec());
                     } else if line.contains("@expeption") {
-                        except.push(doc_desc(&line_vec[1..].to_vec()));
+                        if len > 2 {
+                            let mut ex = Exception {
+                                exception_type: line_vec[1].clone(),
+                                desc: doc_desc(&line_vec[2..].to_vec()),
+                            };
+                            except = ex;
+                        }
+                    } else if line.contains("@throws") {
+                        if len > 2 {
+                            let mut ex = Exception {
+                                exception_type: line_vec[1].clone(),
+                                desc: doc_desc(&line_vec[2..].to_vec()),
+                            };
+                            except = ex;
+                        }
                     } else if line.contains("@version") {
                         version = doc_desc(&line_vec[1..].to_vec());
                     } else if line.contains("@deprecated") {
@@ -246,7 +266,7 @@ pub mod parse {
             return_desc: return_str,
             author: author,
             version: version,
-            exceptions: except,
+            exception: except,
             deprecated: deprecated,
         }
     }
@@ -287,35 +307,9 @@ pub mod parse {
         let file = File::open(path).expect("File not found");
         let buf = BufReader::new(&file);
         let mut doc_buffer: Vec<String> = Vec::new();
-
-        let mut class = Class {
-            package_name: String::from(""),
-            dependencies: Vec::new(),
-            deprecation: String::from(""),
-            access: String::from(""),
-            version: String::from(""),
-            author: String::from(""),
-            class_name: String::from(""),
-            description: String::from(""),
-            methods: Vec::new(),
-        };
-        let mut parse_state = ParseState {
-            class: false,
-            method: false,
-            doc: false,
-            comment: false,
-            doc_ready: false,
-            block_depth: 0,
-        };
-        let mut jdoc = Doc {
-            params: Vec::new(),
-            description: String::from(""),
-            return_desc: String::from(""),
-            author: String::from(""),
-            version: String::from(""),
-            exceptions: Vec::new(),
-            deprecated: String::from(""),
-        };
+        let mut class = Class::new();
+        let mut parse_state = ParseState::new();
+        let mut jdoc = Doc::new();
 
         for line in buf.lines() {
             let l = line.unwrap();
@@ -372,8 +366,8 @@ pub mod parse {
                                 match_params(&j_method.parameters, &jdoc.params);
                             j_method.ch_params(n_params);
 
-                            for i in 0..jdoc.exceptions.len() {
-                                j_method.add_exception(jdoc.exceptions[i].clone());
+                            if !jdoc.exception.is_empty() {
+                                j_method.ch_exception(jdoc.exception.clone());
                             }
                         }
 

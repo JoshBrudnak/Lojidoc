@@ -8,13 +8,20 @@ pub mod model {
         pub var_type: String,
     }
 
+    #[derive(Debug)]
+    /// Struct representing method parameter data contained in javadoc and method declaration
+    pub struct Exception {
+        pub exception_type: String,
+        pub desc: String,
+    }
+
     /// Struct representing data contained in javadoc comments
     pub struct Doc {
         pub params: Vec<Param>,
         pub description: String,
         pub author: String,
         pub version: String,
-        pub exceptions: Vec<String>,
+        pub exception: Exception,
         pub deprecated: String,
         pub return_desc: String,
     }
@@ -25,8 +32,8 @@ pub mod model {
         pub parameters: Vec<Param>,
         pub name: String,
         pub privacy: String,
-        pub exceptions: Vec<String>,
         pub description: String,
+        pub exception: Exception,
         pub return_type: String,
     }
 
@@ -41,6 +48,7 @@ pub mod model {
         pub author: String,
         pub class_name: String,
         pub description: String,
+        pub exception: Exception,
         pub dependencies: Vec<String>,
         pub methods: Vec<Method>,
     }
@@ -55,7 +63,43 @@ pub mod model {
         pub block_depth: i32,
     }
 
+    impl Exception {
+        pub fn new() -> Exception {
+            Exception {
+                exception_type: String::new(),
+                desc: String::new(),
+            }
+        }
+        pub fn is_empty(&self) -> bool {
+            if self.exception_type != "" && self.desc != "" {
+                false
+            } else {
+                true
+            }
+        }
+        pub fn clone(&self) -> Exception {
+            Exception {
+                exception_type: self.exception_type.clone(),
+                desc: self.desc.clone(),
+            }
+        }
+    }
+
     impl Class {
+        pub fn new() -> Class {
+            Class {
+                package_name: String::new(),
+                dependencies: Vec::new(),
+                deprecation: String::new(),
+                access: String::new(),
+                version: String::new(),
+                author: String::new(),
+                class_name: String::new(),
+                exception: Exception::new(),
+                description: String::new(),
+                methods: Vec::new(),
+            }
+        }
         pub fn ch_access(&mut self, value: String) {
             self.access = value;
         }
@@ -83,9 +127,22 @@ pub mod model {
         pub fn add_dependency(&mut self, value: String) {
             self.dependencies.push(value);
         }
+        pub fn ch_exception(&mut self, value: Exception) {
+            self.exception = value;
+        }
     }
 
     impl Method {
+        pub fn new() -> Method {
+            Method {
+                parameters: Vec::new(),
+                exception: Exception::new(),
+                name: String::new(),
+                privacy: String::new(),
+                description: String::new(),
+                return_type: String::new(),
+            }
+        }
         pub fn ch_privacy(&mut self, value: String) {
             self.privacy = value;
         }
@@ -95,8 +152,8 @@ pub mod model {
         pub fn ch_description(&mut self, value: String) {
             self.description = value;
         }
-        pub fn add_exception(&mut self, value: String) {
-            self.exceptions.push(value);
+        pub fn ch_exception(&mut self, value: Exception) {
+            self.exception = value;
         }
         pub fn add_param(&mut self, value: Param) {
             self.parameters.push(value);
@@ -110,11 +167,18 @@ pub mod model {
     }
 
     impl ParseState {
+        pub fn new() -> ParseState {
+            ParseState {
+                class: false,
+                method: false,
+                doc: false,
+                comment: false,
+                doc_ready: false,
+                block_depth: 0,
+            }
+        }
         pub fn ch_class(&mut self, value: bool) {
             self.class = value;
-        }
-        pub fn ch_method(&mut self, value: bool) {
-            self.method = value;
         }
         pub fn ch_doc(&mut self, value: bool) {
             self.doc = value;
@@ -148,6 +212,20 @@ pub mod model {
         }
         pub fn ch_desc(&mut self, value: String) {
             self.desc = value;
+        }
+    }
+
+    impl Doc {
+        pub fn new() -> Doc {
+            Doc {
+                params: Vec::new(),
+                description: String::from(""),
+                return_desc: String::from(""),
+                author: String::from(""),
+                version: String::from(""),
+                exception: Exception::new(),
+                deprecated: String::from(""),
+            }
         }
     }
 
