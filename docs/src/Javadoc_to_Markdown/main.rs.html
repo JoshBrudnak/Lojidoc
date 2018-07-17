@@ -191,6 +191,42 @@
 <span id="191">191</span>
 <span id="192">192</span>
 <span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
 </pre><pre class="rust ">
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">clap</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">regex</span>;
@@ -231,8 +267,13 @@
 <span class="doccomment">/// * `start_dir` - The directory to start looking for java files in.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_java_files</span>(<span class="ident">start_dir</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PathBuf</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">files</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PathBuf</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+    <span class="kw">let</span> <span class="ident">file_dir</span> <span class="op">=</span> <span class="ident">fs</span>::<span class="ident">read_dir</span>(<span class="ident">start_dir</span>);
 
-    <span class="kw">for</span> <span class="ident">f</span> <span class="kw">in</span> <span class="ident">fs</span>::<span class="ident">read_dir</span>(<span class="ident">start_dir</span>).<span class="ident">unwrap</span>() {
+    <span class="kw">if</span> <span class="op">!</span><span class="ident">file_dir</span>.<span class="ident">is_ok</span>() {
+        <span class="kw">return</span> <span class="ident">files</span>.<span class="ident">clone</span>();
+    }
+
+    <span class="kw">for</span> <span class="ident">f</span> <span class="kw">in</span> <span class="ident">file_dir</span>.<span class="ident">unwrap</span>() {
         <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">f</span>.<span class="ident">unwrap</span>().<span class="ident">path</span>();
 
         <span class="kw">if</span> <span class="ident">p</span>.<span class="ident">is_dir</span>() {
@@ -266,34 +307,65 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">doc</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;# {}\n\n&quot;</span>, <span class="ident">class</span>.<span class="ident">class_name</span>);
 
     <span class="kw">if</span> <span class="ident">class</span>.<span class="ident">description</span>.<span class="ident">as_str</span>() <span class="op">!=</span> <span class="string">&quot;&quot;</span> {
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;description: {}\n&quot;</span>, <span class="ident">class</span>.<span class="ident">description</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;description: {}  \n&quot;</span>, <span class="ident">class</span>.<span class="ident">description</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
     }
-    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;privacy: {}\n&quot;</span>, <span class="ident">class</span>.<span class="ident">access</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
-    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;package: {}\n\n&quot;</span>, <span class="ident">class</span>.<span class="ident">package_name</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
-    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;## Dependencies\n\n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;privacy: {}  \n&quot;</span>, <span class="ident">class</span>.<span class="ident">access</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;package: {}  \n\n&quot;</span>, <span class="ident">class</span>.<span class="ident">package_name</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
 
-    <span class="kw">for</span> <span class="ident">dep</span> <span class="kw">in</span> <span class="ident">class</span>.<span class="ident">dependencies</span> {
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;- {}\n&quot;</span>, <span class="ident">dep</span>).<span class="ident">as_str</span>());
+    <span class="kw">if</span> <span class="op">!</span><span class="ident">class</span>.<span class="ident">exception</span>.<span class="ident">is_empty</span>() {
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(
+            <span class="macro">format</span><span class="macro">!</span>(
+                <span class="string">&quot;Throws {}: {}  \n\n&quot;</span>,
+                <span class="ident">class</span>.<span class="ident">exception</span>.<span class="ident">exception_type</span>, <span class="ident">class</span>.<span class="ident">exception</span>.<span class="ident">desc</span>
+            ).<span class="ident">as_str</span>(),
+        );
     }
-    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;\n## Methods\n\n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;## Dependencies\n\n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;details&gt;  \n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;  &lt;summary&gt;  \n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;    Show dependencies  \n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;  &lt;/summary&gt;  \n&quot;</span>);
+
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;  &lt;ul&gt;  \n&quot;</span>);
+    <span class="kw">for</span> <span class="ident">dep</span> <span class="kw">in</span> <span class="ident">class</span>.<span class="ident">dependencies</span> {
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;&lt;li&gt;{}&lt;/li&gt;\n&quot;</span>, <span class="ident">dep</span>).<span class="ident">as_str</span>());
+    }
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;  &lt;/ul&gt;  \n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;/details&gt;  \n\n&quot;</span>);
+    <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;## Methods\n\n&quot;</span>);
 
     <span class="kw">for</span> <span class="ident">member</span> <span class="kw">in</span> <span class="ident">class</span>.<span class="ident">methods</span> {
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;#### {}\n\n&quot;</span>, <span class="ident">member</span>.<span class="ident">name</span>).<span class="ident">as_str</span>());
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;privacy: {}\n&quot;</span>, <span class="ident">member</span>.<span class="ident">privacy</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;description: {}\n&quot;</span>, <span class="ident">member</span>.<span class="ident">description</span>).<span class="ident">as_str</span>());
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;return: {}\n\n&quot;</span>, <span class="ident">member</span>.<span class="ident">return_type</span>).<span class="ident">as_str</span>());
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;### {}\n\n&quot;</span>, <span class="ident">member</span>.<span class="ident">name</span>).<span class="ident">as_str</span>());
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;privacy: {}  \n&quot;</span>, <span class="ident">member</span>.<span class="ident">privacy</span>.<span class="ident">trim</span>()).<span class="ident">as_str</span>());
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;description: {}  \n&quot;</span>, <span class="ident">member</span>.<span class="ident">description</span>).<span class="ident">as_str</span>());
+
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">member</span>.<span class="ident">exception</span>.<span class="ident">is_empty</span>() {
+            <span class="ident">doc</span>.<span class="ident">push_str</span>(
+                <span class="macro">format</span><span class="macro">!</span>(
+                    <span class="string">&quot;Throws {}: {}  \n&quot;</span>,
+                    <span class="ident">member</span>.<span class="ident">exception</span>.<span class="ident">exception_type</span>, <span class="ident">member</span>.<span class="ident">exception</span>.<span class="ident">desc</span>
+                ).<span class="ident">as_str</span>(),
+            );
+        }
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;return: {}  \n\n&quot;</span>, <span class="ident">member</span>.<span class="ident">return_type</span>).<span class="ident">as_str</span>());
 
         <span class="kw">if</span> <span class="ident">member</span>.<span class="ident">parameters</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">0</span> {
-            <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;| Name | Description |\n|_____|_____|\n&quot;</span>);
+            <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;| Name | Type | Description |  \n&quot;</span>);
+            <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;| ----- | ----- | ----- |  \n&quot;</span>);
         } <span class="kw">else</span> {
-            <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;This method has no parameters.\n&quot;</span>);
+            <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;This method has no parameters.  \n&quot;</span>);
         }
 
         <span class="kw">for</span> <span class="ident">param</span> <span class="kw">in</span> <span class="ident">member</span>.<span class="ident">parameters</span> {
-            <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;| {} | {} |\n&quot;</span>, <span class="ident">param</span>.<span class="ident">name</span>, <span class="ident">param</span>.<span class="ident">desc</span>).<span class="ident">as_str</span>());
+            <span class="ident">doc</span>.<span class="ident">push_str</span>(
+                <span class="macro">format</span><span class="macro">!</span>(
+                    <span class="string">&quot;| {} | {} | {} |  \n&quot;</span>,
+                    <span class="ident">param</span>.<span class="ident">name</span>, <span class="ident">param</span>.<span class="ident">var_type</span>, <span class="ident">param</span>.<span class="ident">desc</span>
+                ).<span class="ident">as_str</span>(),
+            );
         }
 
-        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;\n&quot;</span>);
+        <span class="ident">doc</span>.<span class="ident">push_str</span>(<span class="string">&quot;\n\n&quot;</span>);
     }
 
     <span class="ident">file</span>.<span class="ident">write</span>(<span class="ident">doc</span>.<span class="ident">as_str</span>().<span class="ident">as_bytes</span>())
@@ -371,7 +443,7 @@
         .<span class="ident">to_string</span>();
     <span class="kw">let</span> <span class="ident">dest</span> <span class="op">=</span> <span class="ident">matches</span>
         .<span class="ident">value_of</span>(<span class="string">&quot;destination&quot;</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;Destination directory not chosen&quot;</span>)
+        .<span class="ident">unwrap_or</span>(<span class="string">&quot;./generated/&quot;</span>)
         .<span class="ident">to_string</span>();
 
     <span class="ident">fs</span>::<span class="ident">create_dir_all</span>(<span class="ident">dest</span>.<span class="ident">as_str</span>()).<span class="ident">expect</span>(<span class="string">&quot;File path not able to be created&quot;</span>);

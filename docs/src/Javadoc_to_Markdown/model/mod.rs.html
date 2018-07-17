@@ -162,6 +162,94 @@
 <span id="162">162</span>
 <span id="163">163</span>
 <span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
 </pre><pre class="rust ">
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">model</span> {
     <span class="doccomment">//! Module that contains all necessary data stuctures for parsing javadocs and generating docs</span>
@@ -170,6 +258,14 @@
     <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Param</span> {
         <span class="kw">pub</span> <span class="ident">desc</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">String</span>,
+        <span class="kw">pub</span> <span class="ident">var_type</span>: <span class="ident">String</span>,
+    }
+
+    <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+    <span class="doccomment">/// Struct representing method parameter data contained in javadoc and method declaration</span>
+    <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Exception</span> {
+        <span class="kw">pub</span> <span class="ident">exception_type</span>: <span class="ident">String</span>,
+        <span class="kw">pub</span> <span class="ident">desc</span>: <span class="ident">String</span>,
     }
 
     <span class="doccomment">/// Struct representing data contained in javadoc comments</span>
@@ -178,7 +274,7 @@
         <span class="kw">pub</span> <span class="ident">description</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">author</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
-        <span class="kw">pub</span> <span class="ident">exceptions</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+        <span class="kw">pub</span> <span class="ident">exception</span>: <span class="ident">Exception</span>,
         <span class="kw">pub</span> <span class="ident">deprecated</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">return_desc</span>: <span class="ident">String</span>,
     }
@@ -189,8 +285,8 @@
         <span class="kw">pub</span> <span class="ident">parameters</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>,
         <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">privacy</span>: <span class="ident">String</span>,
-        <span class="kw">pub</span> <span class="ident">exceptions</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
         <span class="kw">pub</span> <span class="ident">description</span>: <span class="ident">String</span>,
+        <span class="kw">pub</span> <span class="ident">exception</span>: <span class="ident">Exception</span>,
         <span class="kw">pub</span> <span class="ident">return_type</span>: <span class="ident">String</span>,
     }
 
@@ -205,6 +301,7 @@
         <span class="kw">pub</span> <span class="ident">author</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">class_name</span>: <span class="ident">String</span>,
         <span class="kw">pub</span> <span class="ident">description</span>: <span class="ident">String</span>,
+        <span class="kw">pub</span> <span class="ident">exception</span>: <span class="ident">Exception</span>,
         <span class="kw">pub</span> <span class="ident">dependencies</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
         <span class="kw">pub</span> <span class="ident">methods</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Method</span><span class="op">&gt;</span>,
     }
@@ -219,7 +316,43 @@
         <span class="kw">pub</span> <span class="ident">block_depth</span>: <span class="ident">i32</span>,
     }
 
+    <span class="kw">impl</span> <span class="ident">Exception</span> {
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">Exception</span> {
+            <span class="ident">Exception</span> {
+                <span class="ident">exception_type</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">desc</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+            }
+        }
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_empty</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">exception_type</span> <span class="op">!=</span> <span class="string">&quot;&quot;</span> <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">desc</span> <span class="op">!=</span> <span class="string">&quot;&quot;</span> {
+                <span class="bool-val">false</span>
+            } <span class="kw">else</span> {
+                <span class="bool-val">true</span>
+            }
+        }
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Exception</span> {
+            <span class="ident">Exception</span> {
+                <span class="ident">exception_type</span>: <span class="self">self</span>.<span class="ident">exception_type</span>.<span class="ident">clone</span>(),
+                <span class="ident">desc</span>: <span class="self">self</span>.<span class="ident">desc</span>.<span class="ident">clone</span>(),
+            }
+        }
+    }
+
     <span class="kw">impl</span> <span class="ident">Class</span> {
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">Class</span> {
+            <span class="ident">Class</span> {
+                <span class="ident">package_name</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">dependencies</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+                <span class="ident">deprecation</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">access</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">version</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">author</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">class_name</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">exception</span>: <span class="ident">Exception</span>::<span class="ident">new</span>(),
+                <span class="ident">description</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">methods</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+            }
+        }
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_access</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
             <span class="self">self</span>.<span class="ident">access</span> <span class="op">=</span> <span class="ident">value</span>;
         }
@@ -247,9 +380,22 @@
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_dependency</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
             <span class="self">self</span>.<span class="ident">dependencies</span>.<span class="ident">push</span>(<span class="ident">value</span>);
         }
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_exception</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">Exception</span>) {
+            <span class="self">self</span>.<span class="ident">exception</span> <span class="op">=</span> <span class="ident">value</span>;
+        }
     }
 
     <span class="kw">impl</span> <span class="ident">Method</span> {
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">Method</span> {
+            <span class="ident">Method</span> {
+                <span class="ident">parameters</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+                <span class="ident">exception</span>: <span class="ident">Exception</span>::<span class="ident">new</span>(),
+                <span class="ident">name</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">privacy</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">description</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+                <span class="ident">return_type</span>: <span class="ident">String</span>::<span class="ident">new</span>(),
+            }
+        }
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_privacy</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
             <span class="self">self</span>.<span class="ident">privacy</span> <span class="op">=</span> <span class="ident">value</span>;
         }
@@ -259,11 +405,14 @@
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_description</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
             <span class="self">self</span>.<span class="ident">description</span> <span class="op">=</span> <span class="ident">value</span>;
         }
-        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_exception</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
-            <span class="self">self</span>.<span class="ident">exceptions</span>.<span class="ident">push</span>(<span class="ident">value</span>);
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_exception</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">Exception</span>) {
+            <span class="self">self</span>.<span class="ident">exception</span> <span class="op">=</span> <span class="ident">value</span>;
         }
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_param</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">Param</span>) {
             <span class="self">self</span>.<span class="ident">parameters</span>.<span class="ident">push</span>(<span class="ident">value</span>);
+        }
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_params</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>) {
+            <span class="self">self</span>.<span class="ident">parameters</span> <span class="op">=</span> <span class="ident">value</span>;
         }
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_return_type</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
             <span class="self">self</span>.<span class="ident">return_type</span> <span class="op">=</span> <span class="ident">value</span>;
@@ -271,11 +420,18 @@
     }
 
     <span class="kw">impl</span> <span class="ident">ParseState</span> {
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">ParseState</span> {
+            <span class="ident">ParseState</span> {
+                <span class="ident">class</span>: <span class="bool-val">false</span>,
+                <span class="ident">method</span>: <span class="bool-val">false</span>,
+                <span class="ident">doc</span>: <span class="bool-val">false</span>,
+                <span class="ident">comment</span>: <span class="bool-val">false</span>,
+                <span class="ident">doc_ready</span>: <span class="bool-val">false</span>,
+                <span class="ident">block_depth</span>: <span class="number">0</span>,
+            }
+        }
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_class</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">bool</span>) {
             <span class="self">self</span>.<span class="ident">class</span> <span class="op">=</span> <span class="ident">value</span>;
-        }
-        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_method</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">bool</span>) {
-            <span class="self">self</span>.<span class="ident">method</span> <span class="op">=</span> <span class="ident">value</span>;
         }
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_doc</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">bool</span>) {
             <span class="self">self</span>.<span class="ident">doc</span> <span class="op">=</span> <span class="ident">value</span>;
@@ -299,10 +455,29 @@
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Param</span> {
             <span class="kw">let</span> <span class="ident">new_desc</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">desc</span>.<span class="ident">clone</span>();
             <span class="kw">let</span> <span class="ident">new_name</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">name</span>.<span class="ident">clone</span>();
+            <span class="kw">let</span> <span class="ident">new_type</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">var_type</span>.<span class="ident">clone</span>();
 
             <span class="ident">Param</span> {
                 <span class="ident">desc</span>: <span class="ident">new_desc</span>,
                 <span class="ident">name</span>: <span class="ident">new_name</span>,
+                <span class="ident">var_type</span>: <span class="ident">new_type</span>,
+            }
+        }
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ch_desc</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">String</span>) {
+            <span class="self">self</span>.<span class="ident">desc</span> <span class="op">=</span> <span class="ident">value</span>;
+        }
+    }
+
+    <span class="kw">impl</span> <span class="ident">Doc</span> {
+        <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">Doc</span> {
+            <span class="ident">Doc</span> {
+                <span class="ident">params</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+                <span class="ident">description</span>: <span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>),
+                <span class="ident">return_desc</span>: <span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>),
+                <span class="ident">author</span>: <span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>),
+                <span class="ident">version</span>: <span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>),
+                <span class="ident">exception</span>: <span class="ident">Exception</span>::<span class="ident">new</span>(),
+                <span class="ident">deprecated</span>: <span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>),
             }
         }
     }
@@ -319,13 +494,14 @@
         <span class="ident">IsOther</span>,
     }
 
-    <span class="kw">enum</span> <span class="ident">ParseError</span> {
+    <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ParseError</span> {
+        <span class="ident">NoError</span>,
         <span class="ident">NotMethod</span>,
         <span class="ident">IncorrectSyntax</span>,
     }
 
     <span class="doccomment">/// Used for handling method parsing results</span>
-    <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ParseResult</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Method</span>, <span class="ident">ParseError</span><span class="op">&gt;</span>;
+    <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">MethodResult</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Method</span>, <span class="ident">ParseError</span><span class="op">&gt;</span>;
 }
 </pre>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../../";window.currentCrate = "Javadoc_to_Markdown";</script><script src="../../../aliases.js"></script><script src="../../../main.js"></script><script defer src="../../../search-index.js"></script></body></html>
