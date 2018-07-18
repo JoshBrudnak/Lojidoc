@@ -100,8 +100,7 @@ pub mod parse {
     }
 
     fn handle_method(line: &String) -> Result<Method, &str> {
-        let access_match = r"(public|protected|private)";
-        let parts = trim_whitespace(line);
+        let access_match = r"(public|protected|private)"; let parts = trim_whitespace(line);
         let mut method = Method::new();
 
         for (i, method_part) in parts.iter().enumerate() {
@@ -133,12 +132,19 @@ pub mod parse {
                     }
 
                     if param_def {
-                        method.add_param(Param {
-                            desc: String::new(),
-                            var_type: param_type.clone(),
-                            name: meth_part,
-                        });
-                        param_def = false;
+                        if parts[j].contains(">") || parts[j].contains("]") {
+                          println!("{:?}", meth_part.clone());
+                          param_type.push_str(format!("{}", meth_part).as_str());
+                        } else {
+                            method.add_param(Param {
+                                desc: String::new(),
+                                var_type: param_type.clone(),
+                                name: meth_part,
+                            });
+
+                            param_def = false;
+                        }
+
                     } else {
                         param_type = meth_part;
                         param_def = true;
