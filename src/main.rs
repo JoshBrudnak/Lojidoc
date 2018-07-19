@@ -60,6 +60,10 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
         }
     }
 
+    for file in files.clone() {
+        println!("{:?}", file);
+    }
+
     files.clone()
 }
 
@@ -80,6 +84,18 @@ pub fn generate_markdown(class: Class, dest: &str) {
         doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
     }
     doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
+    if class.parent != "" {
+        doc.push_str(format!("parent class: {}  \n", class.parent).as_str());
+    }
+
+    if class.interfaces.len() > 0 {
+        doc.push_str("Interfaces:  \n");
+
+        for inter in class.interfaces {
+            doc.push_str(format!("- {}  \n", inter).as_str());
+        }
+    }
+
     doc.push_str(format!("package: {}  \n\n", class.package_name.trim()).as_str());
 
     if !class.exception.is_empty() {

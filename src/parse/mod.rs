@@ -60,10 +60,22 @@ pub mod parse {
             LineType::IsPackage
         } else if line.contains("class ") && !state.comment && !state.doc {
             LineType::IsClass
+        } else if line.contains("interface ") && !state.comment && !state.doc {
+            LineType::IsInterface
         } else if line.contains("import ") {
             LineType::IsImport
         } else if regex_match(&line, method_match) {
-            LineType::IsMethod
+            if line.contains("if(") {
+                LineType::IsOther
+            } else if line.contains("for(") {
+                LineType::IsOther
+            } else if line.contains("while(") {
+                LineType::IsOther
+            } else if line.contains("catch(") {
+                LineType::IsOther
+            } else {
+                LineType::IsMethod
+            }
         } else if start_doc_match(&line) {
             LineType::IsStartdoc
         } else if start_comment_match(&line) {
@@ -89,6 +101,14 @@ pub mod parse {
                 if parts.len() > num + 1 {
                     class.ch_class_name(parts[num + 1].to_string());
                 }
+            } else if class_part.contains("extends") {
+                if parts.len() > num + 1 {
+                    class.ch_parent(parts[num + 1].to_string());
+                }
+            } else if class_part.contains("implements") {
+                if parts.len() > num + 1 {
+                    class.add_interface(parts[num + 1].to_string());
+                }
             } else if class_part.contains("exception") {
                 if parts.len() > num + 1 {
                     class.ch_class_name(parts[num + 1].to_string());
@@ -100,13 +120,16 @@ pub mod parse {
     }
 
     fn handle_method(line: &String) -> Result<Method, &str> {
-        let access_match = r"(public|protected|private)"; let parts = trim_whitespace(line);
+        let access_match = r"(public|protected|private)";
+        let parts = trim_whitespace(line);
         let mut method = Method::new();
 
         for (i, method_part) in parts.iter().enumerate() {
             if regex_match(&method_part, access_match) {
                 method.ch_privacy(method_part.clone().to_string());
             } else if method_part.contains("void") {
+                method.ch_return_type("void".to_string());
+            } else if method_part.contains("static") {
                 method.ch_return_type("void".to_string());
             } else if method_part.contains("exception") {
                 if parts.len() > i + 1 {
@@ -133,8 +156,8 @@ pub mod parse {
 
                     if param_def {
                         if parts[j].contains(">") || parts[j].contains("]") {
-                          println!("{:?}", meth_part.clone());
-                          param_type.push_str(format!("{}", meth_part).as_str());
+                            println!("{:?}", meth_part.clone());
+                            param_type.push_str(format!("{}", meth_part).as_str());
                         } else {
                             method.add_param(Param {
                                 desc: String::new(),
@@ -144,7 +167,6 @@ pub mod parse {
 
                             param_def = false;
                         }
-
                     } else {
                         param_type = meth_part;
                         param_def = true;

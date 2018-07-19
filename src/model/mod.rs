@@ -43,12 +43,29 @@ pub mod model {
     pub struct Class {
         pub package_name: String,
         pub deprecation: String,
+        pub parent: String,
         pub access: String,
         pub version: String,
         pub author: String,
         pub class_name: String,
         pub description: String,
         pub exception: Exception,
+        pub interfaces: Vec<String>,
+        pub dependencies: Vec<String>,
+        pub methods: Vec<Method>,
+    }
+
+    #[derive(Debug)]
+    /// Struct containing interface documentation information
+    /// Includes package name, imports, method templates, and other data
+    pub struct Interface {
+        pub package_name: String,
+        pub deprecation: String,
+        pub access: String,
+        pub version: String,
+        pub author: String,
+        pub class_name: String,
+        pub description: String,
         pub dependencies: Vec<String>,
         pub methods: Vec<Method>,
     }
@@ -91,6 +108,8 @@ pub mod model {
                 package_name: String::new(),
                 dependencies: Vec::new(),
                 deprecation: String::new(),
+                parent: String::new(),
+                interfaces: Vec::new(),
                 access: String::new(),
                 version: String::new(),
                 author: String::new(),
@@ -115,6 +134,9 @@ pub mod model {
         pub fn ch_deprecation(&mut self, value: String) {
             self.deprecation = value;
         }
+        pub fn ch_parent(&mut self, value: String) {
+            self.parent = value;
+        }
         pub fn ch_version(&mut self, value: String) {
             self.deprecation = value;
         }
@@ -126,6 +148,9 @@ pub mod model {
         }
         pub fn add_dependency(&mut self, value: String) {
             self.dependencies.push(value);
+        }
+        pub fn add_interface(&mut self, value: String) {
+            self.interfaces.push(value);
         }
         pub fn ch_exception(&mut self, value: Exception) {
             self.exception = value;
@@ -186,16 +211,6 @@ pub mod model {
         pub fn ch_doc_ready(&mut self, value: bool) {
             self.doc_ready = value;
         }
-        pub fn increase_depth(&mut self) {
-            self.block_depth = self.block_depth + 1;
-        }
-        pub fn decrease_depth(&mut self) {
-            if self.block_depth > 0 {
-                self.block_depth = self.block_depth - 1;
-            } else {
-                println!("syntax error extra bracket");
-            }
-        }
     }
 
     impl Param {
@@ -234,19 +249,11 @@ pub mod model {
         IsPackage,
         IsImport,
         IsClass,
+        IsInterface,
         IsMethod,
         IsComment,
         IsStartdoc,
         IsEnddoc,
         IsOther,
     }
-
-    pub enum ParseError {
-        NoError,
-        NotMethod,
-        IncorrectSyntax,
-    }
-
-    /// Used for handling method parsing results
-    pub type MethodResult = Result<Method, ParseError>;
 }
