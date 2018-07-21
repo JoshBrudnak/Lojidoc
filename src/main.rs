@@ -16,6 +16,8 @@ use std::sync::Arc;
 use threadpool::ThreadPool;
 
 use model::model::Class;
+use model::model::Method;
+use model::model::Interface;
 use model::model::Project;
 use model::model::LineType;
 use parse::parse::parse_file;
@@ -41,6 +43,7 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     let file_dir = fs::read_dir(start_dir);
 
     if !file_dir.is_ok() {
+        println!("Incorrect file path");
         return files.clone();
     }
 
@@ -64,18 +67,8 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     files.clone()
 }
 
-/// Generates a markdown file for a java file
-/// Uses a Class struct to write the markdown
-///
-/// # Arguments
-///
-/// * `class` - The class struct containing the java documentation data
-/// * `dest` - The file path where the markdown file will be saved
-pub fn generate_markdown(class: Class, dest: &str) {
-    let name = format!("{}/{}.{}", dest, class.class_name, "md");
-    let mut file = File::create(name).unwrap();
-
-    let mut doc = format!("# {}\n\n", class.class_name);
+pub fn gen_class_docs(class: Class) -> String {
+    let mut doc = format!("# Class {}\n\n", class.class_name);
 
     if class.description.as_str() != "" {
         doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
@@ -117,7 +110,37 @@ pub fn generate_markdown(class: Class, dest: &str) {
     doc.push_str("</details>  \n\n");
     doc.push_str("## Methods\n\n");
 
-    for member in class.methods {
+    doc
+}
+pub fn gen_interface_docs(inter: Interface) -> String {
+    let mut doc = format!("# Interface {}\n\n", inter.name);
+
+    if inter.description.as_str() != "" {
+        doc.push_str(format!("description: {}  \n", inter.description.trim()).as_str());
+    }
+    doc.push_str(format!("privacy: {}  \n", inter.access.trim()).as_str());
+    doc.push_str(format!("package: {}  \n\n", inter.package_name.trim()).as_str());
+    doc.push_str("## Dependencies\n\n");
+    doc.push_str("<details>  \n");
+    doc.push_str("  <summary>  \n");
+    doc.push_str("    Show dependencies  \n");
+    doc.push_str("  </summary>  \n");
+
+    doc.push_str("  <ul>  \n");
+    for dep in inter.dependencies {
+        doc.push_str(format!("<li>{}</li>\n", dep).as_str());
+    }
+    doc.push_str("  </ul>  \n");
+    doc.push_str("</details>  \n\n");
+    doc.push_str("## Methods\n\n");
+
+    doc
+}
+
+pub fn gen_method_docs(methods: Vec<Method>) -> String {
+    let mut doc = "## Methods\n\n".to_string();
+
+    for member in methods {
         doc.push_str(format!("### {}\n\n", member.name).as_str());
         doc.push_str(format!("privacy: {}  \n", member.privacy.trim()).as_str());
         doc.push_str(format!("description: {}  \n", member.description).as_str());
@@ -151,9 +174,38 @@ pub fn generate_markdown(class: Class, dest: &str) {
         doc.push_str("\n\n");
     }
 
-    file.write(doc.as_str().as_bytes())
-        .expect("Not able to write to file");
-    println!("{}.{} was created", class.class_name, "md");
+    doc
+}
+
+/// Generates a markdown file for a java file
+/// Uses a Class struct to write the markdown
+///
+/// # Arguments
+///
+/// * `class` - The class struct containing the java documentation data
+/// * `dest` - The file path where the markdown file will be saved
+pub fn generate_markdown(proj: Project, dest: &str) {
+    for mut class in proj.classes {
+        let name = format!("{}/{}.{}", dest, class.class_name, "md");
+        let mut file = File::create(name).unwrap();
+
+        let mut doc = gen_class_docs(class.clone());
+        doc.push_str(gen_method_docs(class.methods).as_str());
+        file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
+
+        println!("{}.{} was created", class.class_name, "md");
+    }
+
+    for mut inter in proj.interfaces {
+        let name = format!("{}/{}.{}", dest, inter.name, "md");
+        let mut file = File::create(name).unwrap();
+
+        let mut doc = gen_interface_docs(inter.clone());
+        doc.push_str(gen_method_docs(inter.methods).as_str());
+        file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
+
+        println!("{}.{} was created", inter.name, "md");
+    }
 }
 
 /// Handles the thread pooling the application
@@ -179,7 +231,7 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String) {
         pool.execute(move || {
             let mut project: Project = Project::new();
 
-            for j in 0..3 {
+            for j in 0..4 {
                 if (i * 4) + j < size {
                     let mut class = parse_file(&file_cp[(i * 4) + j]);
                     if !class.is_class {
@@ -187,13 +239,16 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String) {
                     } else {
                         project.add_class(class.clone());
                     }
-                    generate_markdown(class, new_dest.as_str());
                 }
             }
+
+            generate_markdown(project, new_dest.as_str());
         });
     }
 
     pool.join();
+
+    println!("\nDocumentation finished. Generated {} markdown files.", files.len());
 }
 
 fn main() {

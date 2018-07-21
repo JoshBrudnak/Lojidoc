@@ -226,6 +226,25 @@ pub mod model {
                 methods: Vec::new(),
             }
         }
+        pub fn clone(&mut self) -> Interface {
+            let mut new_methods = Vec::new();
+
+            for i in 0..self.methods.len() {
+                new_methods.push(self.methods[i].clone());
+            }
+
+            Interface {
+                package_name: self.package_name.clone(),
+                dependencies: self.dependencies.clone(),
+                deprecation: self.deprecation.clone(),
+                access: self.access.clone(),
+                version: self.version.clone(),
+                author: self.author.clone(),
+                name: self.name.clone(),
+                description: self.description.clone(),
+                methods: new_methods,
+            }
+        }
         pub fn ch_access(&mut self, value: String) {
             self.access = value;
         }
