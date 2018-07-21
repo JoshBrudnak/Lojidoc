@@ -16,6 +16,7 @@ use std::sync::Arc;
 use threadpool::ThreadPool;
 
 use model::model::Class;
+use model::model::Project;
 use model::model::LineType;
 use parse::parse::parse_file;
 
@@ -58,10 +59,6 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
                 files.push(p.clone());
             }
         }
-    }
-
-    for file in files.clone() {
-        println!("{:?}", file);
     }
 
     files.clone()
@@ -180,9 +177,16 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String) {
         let new_dest = safe_dest.clone();
 
         pool.execute(move || {
+            let mut project: Project = Project::new();
+
             for j in 0..3 {
                 if (i * 4) + j < size {
-                    let class = parse_file(&file_cp[(i * 4) + j]);
+                    let mut class = parse_file(&file_cp[(i * 4) + j]);
+                    if !class.is_class {
+                        project.add_interface(class.to_interface());
+                    } else {
+                        project.add_class(class.clone());
+                    }
                     generate_markdown(class, new_dest.as_str());
                 }
             }

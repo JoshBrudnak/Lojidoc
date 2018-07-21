@@ -65,13 +65,13 @@ pub mod parse {
         } else if line.contains("import ") {
             LineType::IsImport
         } else if regex_match(&line, method_match) {
-            if line.contains("if(") {
+            if line.contains(" if(") {
                 LineType::IsOther
-            } else if line.contains("for(") {
+            } else if line.contains(" for(") {
                 LineType::IsOther
-            } else if line.contains("while(") {
+            } else if line.contains(" while(") {
                 LineType::IsOther
-            } else if line.contains("catch(") {
+            } else if line.contains(" catch(") {
                 LineType::IsOther
             } else {
                 LineType::IsMethod
@@ -117,6 +117,24 @@ pub mod parse {
         }
 
         return class;
+    }
+
+    fn handle_interface(mut inter: Class, line: &String) -> Class {
+        let access_match = r"(public|protected|private)";
+        let split = line.split(" ");
+        let parts: Vec<&str> = split.collect();
+
+        for (num, inter_part) in parts.iter().enumerate() {
+            if regex_match(&inter_part, access_match) {
+                inter.ch_access(inter_part.clone().to_string());
+            } else if inter_part.contains("interface") {
+                if parts.len() > num + 1 {
+                    inter.ch_class_name(parts[num + 1].to_string());
+                }
+            }
+        }
+
+        return inter;
     }
 
     fn handle_method(line: &String) -> Result<Method, &str> {
@@ -329,7 +347,8 @@ pub mod parse {
 
     pub fn parse_file(path: &Path) -> Class {
         use LineType::{
-            IsClass, IsComment, IsEnddoc, IsImport, IsMethod, IsOther, IsPackage, IsStartdoc,
+            IsClass, IsComment, IsEnddoc, IsImport, IsInterface, IsMethod, IsOther, IsPackage,
+            IsStartdoc,
         };
 
         let file = File::open(path).expect("File not found");
@@ -369,6 +388,22 @@ pub mod parse {
                 IsClass => {
                     if !parse_state.class {
                         class = handle_class(class, &l);
+                        class.ch_is_class(true);
+
+                        if parse_state.doc_ready {
+                            class.ch_description(jdoc.description.clone());
+                            class.ch_author(jdoc.author.clone());
+                            class.ch_version(jdoc.version.clone());
+                            class.ch_deprecation(jdoc.deprecated.clone());
+                        }
+                        parse_state.ch_class(true);
+                        parse_state.ch_doc_ready(false);
+                    }
+                }
+                IsInterface => {
+                    if !parse_state.class {
+                        class = handle_interface(class, &l);
+                        class.ch_is_class(false);
 
                         if parse_state.doc_ready {
                             class.ch_description(jdoc.description.clone());
