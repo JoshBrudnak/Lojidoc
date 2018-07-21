@@ -200,6 +200,7 @@ pub fn gen_method_docs(methods: Vec<Method>) -> String {
 ///
 /// * `class` - The class struct containing the java documentation data
 /// * `dest` - The file path where the markdown file will be saved
+/// * `context` - The project context e.g. `github.com/user/repo`
 pub fn generate_markdown(proj: Project, dest: &str) {
     for mut class in proj.classes {
         let name = format!("{}/{}.{}", dest, class.class_name, "md");
@@ -238,6 +239,35 @@ pub fn resolve_context(path: PathBuf, context: &String) -> String {
     new_context
 }
 
+/// Handles the single threaded option for running the application
+///
+/// # Arguments
+///
+/// * `file_paths` - A vector of the file paths of java files
+/// * `dest` - The file path where the markdown will be saved
+/// * `context` - The project context e.g. `github.com/user/repo`
+pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String) {
+    let mut project: Project = Project::new();
+
+    for file in file_paths.clone() {
+         let mut class = parse_file(&file);
+
+         let m_context = resolve_context(file, &context);
+
+         if m_context != "" {
+             class.ch_file_path(m_context);
+         }
+         if !class.is_class {
+             project.add_interface(class.to_interface());
+         } else {
+             project.add_class(class.clone());
+         }
+    }
+
+    generate_markdown(project, dest.as_str());
+    println!("\nDocumentation finished. Generated {} markdown files.", file_paths.len());
+}
+
 /// Handles the thread pooling the application
 ///
 /// # Arguments
@@ -266,9 +296,7 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String) {
                 if (i * 4) + j < size {
                     let mut file = file_cp[(i * 4) + j].clone();
                     let mut class = parse_file(&file);
-
                     let m_context = resolve_context(file, &new_context);
-                    println!("{}", m_context);
 
                     if m_context != "" {
                         class.ch_file_path(m_context);
@@ -299,25 +327,29 @@ fn main() {
             Arg::with_name("INPUT")
                 .value_name("FILE")
                 .required(true)
-                .help("Sets the input directory to use")
+                .help("Set the input directory to use")
                 .index(1),
         )
         .arg(
             Arg::with_name("context")
-                .help("Sets the context path of the project")
+                .help("Set the context path of the project")
                 .value_name("FILE")
                 .short("c"),
         )
         .arg(
             Arg::with_name("lint")
-                .help("Checks a java project for incorrent and missing javadocs")
+                .help("Check a java project for incorrent and missing javadocs")
                 .short("l")
-                .takes_value(false),
         )
         .arg(
             Arg::with_name("verbose")
                 .short("v")
                 .help("Generate verbose documentation for a project"),
+        )
+        .arg(
+            Arg::with_name("single-thread")
+                .short("s")
+                .help("Use only on thread for execution of the program"),
         )
         .arg(
             Arg::with_name("destination")
@@ -347,7 +379,12 @@ fn main() {
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
 
     if file_paths.len() > 0 {
+        if matches.is_present("single_thread") {
+            document_single(file_paths, dest, context);
+        } else {
+
         document(file_paths, dest, context);
+        }
     } else {
         println!("No java files found");
     }
