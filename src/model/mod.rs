@@ -49,6 +49,7 @@ pub mod model {
     /// Includes package name, imports, methods, and other data
     pub struct Class {
         pub is_class: bool,
+        pub file_path: String,
         pub package_name: String,
         pub deprecation: String,
         pub parent: String,
@@ -70,6 +71,7 @@ pub mod model {
         pub package_name: String,
         pub deprecation: String,
         pub access: String,
+        pub file_path: String,
         pub version: String,
         pub author: String,
         pub name: String,
@@ -116,6 +118,7 @@ pub mod model {
             Class {
                 is_class: true,
                 package_name: String::new(),
+                file_path: String::new(),
                 dependencies: Vec::new(),
                 deprecation: String::new(),
                 parent: String::new(),
@@ -139,6 +142,7 @@ pub mod model {
             Class {
                 is_class: self.is_class.clone(),
                 parent: self.parent.clone(),
+                file_path: self.file_path.clone(),
                 package_name: self.package_name.clone(),
                 dependencies: self.dependencies.clone(),
                 deprecation: self.deprecation.clone(),
@@ -164,6 +168,7 @@ pub mod model {
                 dependencies: self.dependencies.clone(),
                 deprecation: self.deprecation.clone(),
                 access: self.access.clone(),
+                file_path: self.file_path.clone(),
                 version: self.version.clone(),
                 author: self.author.clone(),
                 name: self.class_name.clone(),
@@ -173,6 +178,9 @@ pub mod model {
         }
         pub fn ch_access(&mut self, value: String) {
             self.access = value;
+        }
+        pub fn ch_file_path(&mut self, value: String) {
+            self.file_path = value;
         }
         pub fn ch_is_class(&mut self, value: bool) {
             self.is_class = value;
@@ -219,6 +227,7 @@ pub mod model {
                 dependencies: Vec::new(),
                 deprecation: String::new(),
                 access: String::new(),
+                file_path: String::new(),
                 version: String::new(),
                 author: String::new(),
                 name: String::new(),
@@ -238,6 +247,7 @@ pub mod model {
                 dependencies: self.dependencies.clone(),
                 deprecation: self.deprecation.clone(),
                 access: self.access.clone(),
+                file_path: self.access.clone(),
                 version: self.version.clone(),
                 author: self.author.clone(),
                 name: self.name.clone(),
@@ -247,6 +257,9 @@ pub mod model {
         }
         pub fn ch_access(&mut self, value: String) {
             self.access = value;
+        }
+        pub fn ch_file_path(&mut self, value: String) {
+            self.file_path = value;
         }
         pub fn ch_package_name(&mut self, value: String) {
             self.package_name = value;

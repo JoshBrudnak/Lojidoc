@@ -68,7 +68,15 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
 }
 
 pub fn gen_class_docs(class: Class) -> String {
-    let mut doc = format!("# Class {}\n\n", class.class_name);
+    let mut doc = String::new();
+
+    if class.file_path != "" {
+        doc.push_str(
+            format!("# Class {} [[src]]({})  \n\n", class.class_name, class.file_path)
+            .as_str());
+    } else {
+        doc.push_str(format!("# Class {}\n\n", class.class_name).as_str());
+    }
 
     if class.description.as_str() != "" {
         doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
@@ -112,8 +120,16 @@ pub fn gen_class_docs(class: Class) -> String {
 
     doc
 }
+
 pub fn gen_interface_docs(inter: Interface) -> String {
-    let mut doc = format!("# Interface {}\n\n", inter.name);
+    let mut doc = String::new();
+
+    if inter.file_path != "" {
+        doc.push_str(format!("# Interface {} [[src]]({})  \n\n", inter.name, inter.file_path).as_str());
+
+    } else {
+        doc.push_str(format!("# Interface {}\n\n", inter.name).as_str());
+    }
 
     if inter.description.as_str() != "" {
         doc.push_str(format!("description: {}  \n", inter.description.trim()).as_str());
@@ -208,13 +224,27 @@ pub fn generate_markdown(proj: Project, dest: &str) {
     }
 }
 
+pub fn resolve_context(path: PathBuf, context: &String) -> String {
+    let mut new_context = context.clone();
+    let context_vec: Vec<&str> = context.split("/").collect::<Vec<&str>>();
+    let l_part = context_vec[context_vec.len() - 1];
+    let path_str = path.into_os_string().into_string().unwrap();
+    let path_split: Vec<&str> = path_str.split(l_part).collect::<Vec<&str>>();
+
+    if path_split.len() > 1 {
+        new_context.push_str(path_split[1]);
+    }
+
+    new_context
+}
+
 /// Handles the thread pooling the application
 ///
 /// # Arguments
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
-pub fn document(file_paths: Vec<PathBuf>, dest: String) {
+pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String) {
     let files = Arc::new(file_paths);
     let size = files.len();
     let mut pool_size = size / 4;
@@ -227,13 +257,22 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String) {
     for i in 0..pool_size {
         let file_cp = files.clone();
         let new_dest = safe_dest.clone();
+        let new_context = context.clone();
 
         pool.execute(move || {
             let mut project: Project = Project::new();
 
             for j in 0..4 {
                 if (i * 4) + j < size {
-                    let mut class = parse_file(&file_cp[(i * 4) + j]);
+                    let mut file = file_cp[(i * 4) + j].clone();
+                    let mut class = parse_file(&file);
+
+                    let m_context = resolve_context(file, &new_context);
+                    println!("{}", m_context);
+
+                    if m_context != "" {
+                        class.ch_file_path(m_context);
+                    }
                     if !class.is_class {
                         project.add_interface(class.to_interface());
                     } else {
@@ -255,7 +294,7 @@ fn main() {
     let matches = App::new("Javadoc-To-Markdown")
         .version("1.0")
         .author("Josh Brudnak <jobrud314@gmail.com>")
-        .about("A tool for generating markdown documentation from javadocs")
+        .about("A tool for generating markdown documentation for java projects")
         .arg(
             Arg::with_name("INPUT")
                 .value_name("FILE")
@@ -266,7 +305,14 @@ fn main() {
         .arg(
             Arg::with_name("context")
                 .help("Sets the context path of the project")
+                .value_name("FILE")
                 .short("c"),
+        )
+        .arg(
+            Arg::with_name("lint")
+                .help("Checks a java project for incorrent and missing javadocs")
+                .short("l")
+                .takes_value(false),
         )
         .arg(
             Arg::with_name("verbose")
@@ -290,6 +336,10 @@ fn main() {
         .value_of("destination")
         .unwrap_or("./generated/")
         .to_string();
+    let context = matches
+        .value_of("context")
+        .unwrap_or("")
+        .to_string();
 
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
     println!("Generating documentation from {}", dir);
@@ -297,7 +347,7 @@ fn main() {
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
 
     if file_paths.len() > 0 {
-        document(file_paths, dest);
+        document(file_paths, dest, context);
     } else {
         println!("No java files found");
     }
