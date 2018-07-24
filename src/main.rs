@@ -144,7 +144,7 @@ pub fn gen_interface_docs(inter: Interface) -> String {
 
     doc.push_str("  <ul>  \n");
     for dep in inter.dependencies {
-        doc.push_str(format!("<li>{}</li>\n", dep).as_str());
+        doc.push_str(format!("    <li>{}</li>\n", dep).as_str());
     }
     doc.push_str("  </ul>  \n");
     doc.push_str("</details>  \n\n");
@@ -229,11 +229,11 @@ pub fn generate_markdown(proj: Project, dest: &str) {
     }
 }
 
-fn is_git_dir(file: &str) -> bool {
+fn is_repo_dir(file: &str) -> bool {
     let line_vec: Vec<&str> = file.split("/").collect::<Vec<&str>>();
-    let l_index = line_vec.len() - 1;
+    let l_part = line_vec[line_vec.len() - 1];
 
-    if line_vec[l_index].contains(".git") {
+    if l_part.contains(".git") || l_part.contains(".hg") {
         true
     } else {
         false
@@ -259,7 +259,7 @@ fn find_git(orig_path: String) -> String {
 
                 if p.is_dir() {
                     let p_str = p.as_path().to_str().unwrap();
-                    if is_git_dir(&p_str) {
+                    if is_repo_dir(&p_str) {
                         let res_str = p.parent().unwrap().as_os_str().to_str().unwrap();
                         res = res_str.to_string().clone();
                         break;
@@ -286,6 +286,30 @@ pub fn resolve_context(path: PathBuf, context: &String) -> String {
     new_context
 }
 
+/// Handles linting javadocs
+///
+/// # Arguments
+///
+/// * `file_paths` - A vector of the file paths of java files
+/// * `dest` - The file path where the markdown will be saved
+/// * `context` - The project context e.g. `github.com/user/repo`
+pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
+    let mut project: Project = Project::new();
+
+    for file in file_paths.clone() {
+         let mut class = parse_file(&file, true);
+
+         if !class.is_class {
+             project.add_interface(class.to_interface());
+         } else {
+             project.add_class(class.clone());
+         }
+    }
+
+    generate_markdown(project, dest.as_str());
+    println!("\nDocumentation finished. Generated {} markdown files.", file_paths.len());
+}
+
 /// Handles the single threaded option for running the application
 ///
 /// # Arguments
@@ -297,7 +321,7 @@ pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String) 
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-         let mut class = parse_file(&file);
+         let mut class = parse_file(&file, false);
 
          let m_context = resolve_context(file, &context);
 
@@ -342,7 +366,7 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String) {
             for j in 0..4 {
                 if (i * 4) + j < size {
                     let mut file = file_cp[(i * 4) + j].clone();
-                    let mut class = parse_file(&file);
+                    let mut class = parse_file(&file, false);
                     let m_context = resolve_context(file, &new_context);
 
                     if m_context != "" {
@@ -428,10 +452,12 @@ fn main() {
     if file_paths.len() > 0 {
         if matches.is_present("single_thread") {
             document_single(file_paths, dest, context);
+        } else if matches.is_present("lint") {
+            lint_javadoc(file_paths, dest);
         } else {
-
-        document(file_paths, dest, context);
+            document(file_paths, dest, context);
         }
+
     } else {
         println!("No java files found");
     }
