@@ -116,7 +116,6 @@ pub fn gen_class_docs(class: Class) -> String {
     }
     doc.push_str("  </ul>  \n");
     doc.push_str("</details>  \n\n");
-    doc.push_str("## Methods\n\n");
 
     doc
 }
@@ -160,20 +159,20 @@ pub fn gen_method_docs(methods: Vec<Method>) -> String {
         doc.push_str(format!("### {}\n\n", member.name).as_str());
 
         if member.is_static {
-            doc.push_str("Static");
+            doc.push_str("+ Static");
         }
-        doc.push_str(format!("privacy: {}  \n", member.privacy.trim()).as_str());
-        doc.push_str(format!("description: {}  \n", member.description).as_str());
+        doc.push_str(format!("+ privacy: {}  \n", member.privacy.trim()).as_str());
+        doc.push_str(format!("+ description: {}  \n", member.description).as_str());
 
         if !member.exception.is_empty() {
             doc.push_str(
                 format!(
-                    "Throws {}: {}  \n",
+                    "+ Throws {}: {}  \n",
                     member.exception.exception_type, member.exception.desc
                 ).as_str(),
             );
         }
-        doc.push_str(format!("return: {}  \n\n", member.return_type).as_str());
+        doc.push_str(format!("+ return: {}  \n\n", member.return_type).as_str());
 
         if member.parameters.len() > 0 {
             doc.push_str("| Name | Type | Description |  \n");
