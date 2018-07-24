@@ -225,16 +225,59 @@ pub fn generate_markdown(proj: Project, dest: &str) {
     }
 }
 
-pub fn resolve_context(path: PathBuf, context: &String) -> String {
-    let mut new_context = context.clone();
-    let context_vec: Vec<&str> = context.split("/").collect::<Vec<&str>>();
-    let l_part = context_vec[context_vec.len() - 1];
-    let path_str = path.into_os_string().into_string().unwrap();
-    let path_split: Vec<&str> = path_str.split(l_part).collect::<Vec<&str>>();
+fn is_git_dir(file: &str) -> bool {
+    let line_vec: Vec<&str> = file.split("/").collect::<Vec<&str>>();
+    let l_index = line_vec.len() - 1;
 
-    if path_split.len() > 1 {
-        new_context.push_str(path_split[1]);
+    if line_vec[l_index].contains(".git") {
+        true
+    } else {
+        false
     }
+}
+
+fn find_git(orig_path: String) -> String {
+    let line_vec: Vec<&str> = orig_path.split("/").collect::<Vec<&str>>();
+    let mut res = String::new();
+
+    for i in 0..line_vec.len() {
+        let mut line_p = String::new();
+
+        for j in 0..i {
+            line_p.push_str(format!("{}/", line_vec[j]).as_str());
+        }
+
+        let file_dir = fs::read_dir(line_p);
+
+        if file_dir.is_ok() {
+            for f in file_dir.unwrap() {
+                let p = f.unwrap().path();
+
+                if p.is_dir() {
+                    let p_str = p.as_path().to_str().unwrap();
+                    if is_git_dir(&p_str) {
+                        let res_str = p.parent().unwrap().as_os_str().to_str().unwrap();
+                        res = res_str.to_string().clone();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    res
+}
+
+pub fn resolve_context(path: PathBuf, context: &String) -> String {
+    let p = path.to_str().unwrap();
+    let line_vec: Vec<&str> = p.split("/").collect::<Vec<&str>>();
+    let mut part = line_vec[0].to_string();
+    part.push_str("/");
+
+    let repo_root = find_git(p.to_string());
+    let line_vec: Vec<&str> = p.split(repo_root.as_str()).collect::<Vec<&str>>();
+    let mut new_context = context.clone();
+    new_context.push_str(line_vec.join("").as_str());
 
     new_context
 }
