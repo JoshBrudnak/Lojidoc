@@ -67,6 +67,11 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     files.clone()
 }
 
+/// Generates the markdown documentation for a class
+///
+/// # Arguments
+///
+/// * `class` - The class struct containing the javadoc data
 pub fn gen_class_docs(class: Class) -> String {
     let mut doc = String::new();
 
@@ -120,6 +125,11 @@ pub fn gen_class_docs(class: Class) -> String {
     doc
 }
 
+/// Generates the markdown documentation for an interface
+///
+/// # Arguments
+///
+/// * `inter` - The interface struct containing the javadoc data
 pub fn gen_interface_docs(inter: Interface) -> String {
     let mut doc = String::new();
 
@@ -152,6 +162,11 @@ pub fn gen_interface_docs(inter: Interface) -> String {
     doc
 }
 
+/// Generates the markdown documentation for the methods of a class
+///
+/// # Arguments
+///
+/// * `methods` - The vector of class methods to be documented
 pub fn gen_method_docs(methods: Vec<Method>) -> String {
     let mut doc = "## Methods\n\n".to_string();
 
@@ -228,6 +243,11 @@ pub fn generate_markdown(proj: Project, dest: &str) {
     }
 }
 
+/// Determines whether a file path contains a git or mercurial file
+///
+/// # Arguments
+///
+/// * `file` - The repo directory file path
 fn is_repo_dir(file: &str) -> bool {
     let line_vec: Vec<&str> = file.split("/").collect::<Vec<&str>>();
     let l_part = line_vec[line_vec.len() - 1];
@@ -239,7 +259,12 @@ fn is_repo_dir(file: &str) -> bool {
     }
 }
 
-fn find_git(orig_path: String) -> String {
+/// Finds the root directory of the cloned repository
+///
+/// # Arguments
+///
+/// * `orig_path` - The java file path
+fn find_repo_home(orig_path: String) -> String {
     let line_vec: Vec<&str> = orig_path.split("/").collect::<Vec<&str>>();
     let mut res = String::new();
 
@@ -271,13 +296,19 @@ fn find_git(orig_path: String) -> String {
     res
 }
 
+/// Combines the repo url with java file path to provide a link in the docs
+///
+/// # Arguments
+///
+/// * `paths` - The java file path
+/// * `context` - Url of the git or mercurial repository
 pub fn resolve_context(path: PathBuf, context: &String) -> String {
     let p = path.to_str().unwrap();
     let line_vec: Vec<&str> = p.split("/").collect::<Vec<&str>>();
     let mut part = line_vec[0].to_string();
     part.push_str("/");
 
-    let repo_root = find_git(p.to_string());
+    let repo_root = find_repo_home(p.to_string());
     let line_vec: Vec<&str> = p.split(repo_root.as_str()).collect::<Vec<&str>>();
     let mut new_context = context.clone();
     new_context.push_str(line_vec.join("").as_str());
@@ -285,13 +316,12 @@ pub fn resolve_context(path: PathBuf, context: &String) -> String {
     new_context
 }
 
-/// Handles linting javadocs
+/// Handles linting javadocs without saving the documentation
 ///
 /// # Arguments
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
-/// * `context` - The project context e.g. `github.com/user/repo`
 pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
     let mut project: Project = Project::new();
 
@@ -316,11 +346,12 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
 /// * `context` - The project context e.g. `github.com/user/repo`
-pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String) {
+/// * `verbose` - Whether the program will output verbose logging
+pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool) {
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-         let mut class = parse_file(&file, false);
+         let mut class = parse_file(&file, verbose);
 
          let m_context = resolve_context(file, &context);
 
@@ -344,7 +375,7 @@ pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String) 
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
-pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String) {
+pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool) {
     let files = Arc::new(file_paths);
     let size = files.len();
     let mut pool_size = size / 4;
@@ -365,7 +396,7 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String) {
             for j in 0..4 {
                 if (i * 4) + j < size {
                     let mut file = file_cp[(i * 4) + j].clone();
-                    let mut class = parse_file(&file, false);
+                    let mut class = parse_file(&file, verbose);
                     let m_context = resolve_context(file, &new_context);
 
                     if m_context != "" {
@@ -390,7 +421,7 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String) {
 
 fn main() {
     let matches = App::new("Javadoc-To-Markdown")
-        .version("1.0")
+        .version("1.0.0")
         .author("Josh Brudnak <jobrud314@gmail.com>")
         .about("A tool for generating markdown documentation for java projects")
         .arg(
@@ -414,7 +445,7 @@ fn main() {
         .arg(
             Arg::with_name("verbose")
                 .short("v")
-                .help("Generate verbose documentation for a project"),
+                .help("Generate documentation for a project and provide verbose output"),
         )
         .arg(
             Arg::with_name("single-thread")
@@ -442,19 +473,21 @@ fn main() {
         .value_of("context")
         .unwrap_or("")
         .to_string();
+    let file_paths = find_java_files(Path::new(dir.clone().as_str()));
+    let single_thread = matches.is_present("single_thread");
+    let lint = matches.is_present("lint");
+    let verbose = matches.is_present("verbose");
 
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
     println!("Generating documentation from {}", dir);
 
-    let file_paths = find_java_files(Path::new(dir.clone().as_str()));
-
     if file_paths.len() > 0 {
-        if matches.is_present("single_thread") {
-            document_single(file_paths, dest, context);
-        } else if matches.is_present("lint") {
+        if single_thread {
+            document_single(file_paths, dest, context, verbose);
+        } else if lint {
             lint_javadoc(file_paths, dest);
         } else {
-            document(file_paths, dest, context);
+            document(file_paths, dest, context, verbose);
         }
 
     } else {
