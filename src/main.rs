@@ -158,6 +158,10 @@ pub fn gen_method_docs(methods: Vec<Method>) -> String {
 
     for member in methods {
         doc.push_str(format!("### {}\n\n", member.name).as_str());
+
+        if member.is_static {
+            doc.push_str("Static");
+        }
         doc.push_str(format!("privacy: {}  \n", member.privacy.trim()).as_str());
         doc.push_str(format!("description: {}  \n", member.description).as_str());
 

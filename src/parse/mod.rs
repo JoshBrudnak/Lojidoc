@@ -148,7 +148,7 @@ pub mod parse {
             } else if method_part.contains("void") {
                 method.ch_return_type("void".to_string());
             } else if method_part.contains("static") {
-                method.ch_return_type("void".to_string());
+                method.ch_is_static(true);
             } else if method_part.contains("exception") {
                 if parts.len() > i + 1 {
                     let ex = Exception {
@@ -338,7 +338,6 @@ pub mod parse {
                     var_type: param.var_type.clone(),
                     desc: "No description found".to_string(),
                 });
-                //println!("missing javadoc parameter: {}", param.name);
             }
         }
 

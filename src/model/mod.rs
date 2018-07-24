@@ -36,6 +36,7 @@ pub mod model {
     /// Struct containing method data from the javadoc and method declaration
     pub struct Method {
         pub parameters: Vec<Param>,
+        pub is_static: bool,
         pub name: String,
         pub static_meth: bool,
         pub privacy: String,
@@ -291,6 +292,7 @@ pub mod model {
         pub fn new() -> Method {
             Method {
                 parameters: Vec::new(),
+                is_static: false,
                 exception: Exception::new(),
                 name: String::new(),
                 static_meth: false,
@@ -308,6 +310,7 @@ pub mod model {
 
             Method {
                 parameters: new_params,
+                is_static: self.is_static,
                 exception: self.exception.clone(),
                 name: self.name.clone(),
                 static_meth: self.static_meth.clone(),
@@ -318,6 +321,9 @@ pub mod model {
         }
         pub fn ch_privacy(&mut self, value: String) {
             self.privacy = value;
+        }
+        pub fn ch_is_static(&mut self, value: bool) {
+            self.is_static = value;
         }
         pub fn ch_method_name(&mut self, value: String) {
             self.name = value;
