@@ -370,6 +370,13 @@ pub mod parse {
                     let split = l.split(" ");
                     let parts: Vec<&str> = split.collect();
 
+                    if parse_state.doc_ready {
+                        class.ch_license(jdoc.description.clone());
+                        jdoc.clear();
+
+                        parse_state.ch_doc_ready(false);
+                    }
+
                     for (num, w) in parts.iter().enumerate() {
                         if w.contains("package") {
                             let mut pack_name = &parts[num + 1].trim();
@@ -398,6 +405,7 @@ pub mod parse {
                             class.ch_author(jdoc.author.clone());
                             class.ch_version(jdoc.version.clone());
                             class.ch_deprecation(jdoc.deprecated.clone());
+                            jdoc.clear();
                         } else {
                             if lint {
                                 let f = path.to_str().unwrap();

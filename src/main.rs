@@ -83,6 +83,18 @@ pub fn gen_class_docs(class: Class) -> String {
         doc.push_str(format!("# Class {}\n\n", class.class_name).as_str());
     }
 
+    if class.license != "" {
+        doc.push_str("<details>  \n");
+        doc.push_str("  <summary>  \n");
+        doc.push_str("    Show license  \n");
+        doc.push_str("  </summary>  \n");
+
+        doc.push_str("  <ul>  \n");
+        doc.push_str(class.license.as_str());
+        doc.push_str("  </ul>  \n");
+        doc.push_str("</details>  \n\n");
+    }
+
     if class.description.as_str() != "" {
         doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
     }

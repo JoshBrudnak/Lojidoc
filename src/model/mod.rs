@@ -53,6 +53,7 @@ pub mod model {
         pub file_path: String,
         pub package_name: String,
         pub deprecation: String,
+        pub license: String,
         pub parent: String,
         pub access: String,
         pub version: String,
@@ -122,6 +123,7 @@ pub mod model {
                 file_path: String::new(),
                 dependencies: Vec::new(),
                 deprecation: String::new(),
+                license: String::new(),
                 parent: String::new(),
                 interfaces: Vec::new(),
                 access: String::new(),
@@ -145,6 +147,7 @@ pub mod model {
                 parent: self.parent.clone(),
                 file_path: self.file_path.clone(),
                 package_name: self.package_name.clone(),
+                license: self.license.clone(),
                 dependencies: self.dependencies.clone(),
                 deprecation: self.deprecation.clone(),
                 access: self.access.clone(),
@@ -179,6 +182,9 @@ pub mod model {
         }
         pub fn ch_access(&mut self, value: String) {
             self.access = value;
+        }
+        pub fn ch_license(&mut self, value: String) {
+            self.file_path = value;
         }
         pub fn ch_file_path(&mut self, value: String) {
             self.file_path = value;
@@ -389,13 +395,22 @@ pub mod model {
         pub fn new() -> Doc {
             Doc {
                 params: Vec::new(),
-                description: String::from(""),
-                return_desc: String::from(""),
-                author: String::from(""),
-                version: String::from(""),
+                description: String::new(),
+                return_desc: String::new(),
+                author: String::new(),
+                version: String::new(),
                 exception: Exception::new(),
-                deprecated: String::from(""),
+                deprecated: String::new(),
             }
+        }
+        pub fn clear(&mut self) {
+            self.params = Vec::new();
+            self.description = String::new();
+            self.return_desc = String::new();
+            self.author = String::new();
+            self.version = String::new();
+            self.exception = Exception::new();
+            self.deprecated = String::new();
         }
     }
 
