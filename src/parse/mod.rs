@@ -387,11 +387,15 @@ pub mod parse {
                 IsImport => {
                     let split = l.split(" ");
                     let mut parts: Vec<&str> = split.collect();
+                    let mut im_name = String::new();
 
                     for (num, w) in parts.iter().enumerate() {
                         if w.contains("import") {
-                            let mut im_name = &parts[num + 1].trim();
-                            class.add_dependency(im_name.to_string().replace(";", ""));
+                            im_name.push_str(parts[num + 1].trim());
+                            if parts.len() > num + 2 {
+                                im_name.push_str(format!(" {}", parts[num + 2]).as_str());
+                            }
+                            class.add_dependency(im_name.replace(";", ""));
                         }
                     }
                 }
@@ -438,6 +442,7 @@ pub mod parse {
                             class.ch_author(jdoc.author.clone());
                             class.ch_version(jdoc.version.clone());
                             class.ch_deprecation(jdoc.deprecated.clone());
+                            jdoc.clear();
                         } else {
                             if lint {
                                 let f = path.to_str().unwrap();
@@ -480,6 +485,7 @@ pub mod parse {
                             if !jdoc.exception.is_empty() {
                                 j_method.ch_exception(jdoc.exception.clone());
                             }
+                            jdoc.clear();
                         } else {
                             if lint {
                                 let f = path.to_str().unwrap();
