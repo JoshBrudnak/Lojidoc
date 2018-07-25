@@ -95,10 +95,10 @@ pub fn gen_class_docs(class: Class) -> String {
         doc.push_str("</details>  \n\n");
     }
 
+    doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
     if class.description.as_str() != "" {
         doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
     }
-    doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
     if class.parent != "" {
         doc.push_str(format!("parent class: {}  \n", class.parent).as_str());
     }
@@ -169,7 +169,6 @@ pub fn gen_interface_docs(inter: Interface) -> String {
     }
     doc.push_str("  </ul>  \n");
     doc.push_str("</details>  \n\n");
-    doc.push_str("## Methods\n\n");
 
     doc
 }
@@ -179,14 +178,20 @@ pub fn gen_interface_docs(inter: Interface) -> String {
 /// # Arguments
 ///
 /// * `methods` - The vector of class methods to be documented
-pub fn gen_method_docs(methods: Vec<Method>) -> String {
+pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
     let mut doc = "## Methods\n\n".to_string();
 
     for member in methods {
-        doc.push_str(format!("### {}\n\n", member.name).as_str());
+        if member.line_num != "" {
+            let mut file_path = path.clone();
+            file_path.push_str(format!("#L{}", member.line_num).as_str());
+            doc.push_str(format!("### {} [[src]]({})\n\n", member.name, file_path).as_str());
+        } else {
+            doc.push_str(format!("### {}\n\n", member.name).as_str());
+        }
 
         if member.is_static {
-            doc.push_str("+ Static");
+            doc.push_str("+ Static  \n");
         }
         doc.push_str(format!("+ privacy: {}  \n", member.privacy.trim()).as_str());
         doc.push_str(format!("+ description: {}  \n", member.description).as_str());
@@ -237,7 +242,7 @@ pub fn generate_markdown(proj: Project, dest: &str) {
         let mut file = File::create(name).unwrap();
 
         let mut doc = gen_class_docs(class.clone());
-        doc.push_str(gen_method_docs(class.methods).as_str());
+        doc.push_str(gen_method_docs(class.methods, class.file_path).as_str());
         file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
 
         println!("{}.{} was created", class.class_name, "md");
@@ -248,7 +253,7 @@ pub fn generate_markdown(proj: Project, dest: &str) {
         let mut file = File::create(name).unwrap();
 
         let mut doc = gen_interface_docs(inter.clone());
-        doc.push_str(gen_method_docs(inter.methods).as_str());
+        doc.push_str(gen_method_docs(inter.methods, inter.file_path).as_str());
         file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
 
         println!("{}.{} was created", inter.name, "md");
@@ -491,7 +496,7 @@ fn main() {
     let verbose = matches.is_present("verbose");
 
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
-    println!("Generating documentation from {}", dir);
+    println!("\nGenerating documentation from {}\n", dir);
 
     if file_paths.len() > 0 {
         if single_thread {

@@ -137,10 +137,11 @@ pub mod parse {
         return inter;
     }
 
-    fn handle_method(line: &String) -> Result<Method, &str> {
+    fn handle_method(line: &String, num: usize) -> Result<Method, &str> {
         let access_match = r"(public|protected|private)";
         let parts = trim_whitespace(line);
         let mut method = Method::new();
+        method.ch_line_num(num.to_string());
 
         for (i, method_part) in parts.iter().enumerate() {
             if regex_match(&method_part, access_match) {
@@ -174,7 +175,6 @@ pub mod parse {
 
                     if param_def {
                         if parts[j].contains(">") || parts[j].contains("]") {
-                            println!("{:?}", meth_part.clone());
                             param_type.push_str(format!("{}", meth_part).as_str());
                         } else {
                             method.add_param(Param {
@@ -361,7 +361,7 @@ pub mod parse {
         let mut parse_state = ParseState::new();
         let mut jdoc = Doc::new();
 
-        for line in buf.lines() {
+        for (i, line) in buf.lines().enumerate() {
             let l = line.unwrap();
             let line_type = determine_line_type(&l, &parse_state);
 
@@ -461,7 +461,7 @@ pub mod parse {
                     }
                 }
                 IsMethod => {
-                    let method_res = handle_method(&l);
+                    let method_res = handle_method(&l, i + 1);
 
                     if method_res.is_ok() {
                         let mut j_method = method_res.unwrap();

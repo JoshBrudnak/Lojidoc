@@ -35,6 +35,7 @@ pub mod model {
     #[derive(Debug)]
     /// Struct containing method data from the javadoc and method declaration
     pub struct Method {
+        pub line_num: String,
         pub parameters: Vec<Param>,
         pub is_static: bool,
         pub name: String,
@@ -300,6 +301,7 @@ pub mod model {
                 parameters: Vec::new(),
                 is_static: false,
                 exception: Exception::new(),
+                line_num: String::new(),
                 name: String::new(),
                 static_meth: false,
                 privacy: String::new(),
@@ -315,6 +317,7 @@ pub mod model {
             }
 
             Method {
+                line_num: self.line_num.clone(),
                 parameters: new_params,
                 is_static: self.is_static,
                 exception: self.exception.clone(),
@@ -324,6 +327,9 @@ pub mod model {
                 description: self.description.clone(),
                 return_type: self.return_type.clone(),
             }
+        }
+        pub fn ch_line_num(&mut self, value: String) {
+            self.line_num = value;
         }
         pub fn ch_privacy(&mut self, value: String) {
             self.privacy = value;
