@@ -1,5 +1,5 @@
 [package]
-name = "Javadoc_to_Markdown"
+name = "lojidoc"
 version = "0.1.0"
 authors = ["josh <jobrud314@gmail.com>"]
 

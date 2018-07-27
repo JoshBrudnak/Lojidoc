@@ -1,4 +1,4 @@
-# Javadoc To Markdown
+# Lojidoc
 
 A tool for generating markown documentation for java projects.
 
@@ -6,7 +6,7 @@ A tool for generating markown documentation for java projects.
 
 ## Documentation
 
-[Javadoc-to-Markdown](https://joshbrudnak.github.io/Javadoc-To-Markdown/)
+[Lojidoc](https://joshbrudnak.github.io/lojidoc/)
 
 ## Contribution
 
@@ -21,17 +21,18 @@ $ cargo build --release
 ## Usage
 
 Basic Usage
+
 ```
-$ ./Java_to_Markdown [Project_Path]
+$ ./lojidoc [Project_Path]
 ```
 
-| Flag | Description |
-| ---- | ----------- |
-| s | Use only on thread for execution of the program |
-| l | Check a java project for incorrent and missing javadocs |
-| h | Prints help information |
+| Flag | Description                                             |
+| ---- | ------------------------------------------------------- |
+| s    | Use only on thread for execution of the program         |
+| l    | Check a java project for incorrent and missing javadocs |
+| h    | Prints help information                                 |
 
-| Options | Description |
-| ------- | ----------- |
-| c | Add the git repository url of the project to the documentation |
-| d | Sets the destination directory of the created markdown files |
+| Options | Description                                                    |
+| ------- | -------------------------------------------------------------- |
+| c       | Add the git repository url of the project to the documentation |
+| d       | Sets the destination directory of the created markdown files   |
