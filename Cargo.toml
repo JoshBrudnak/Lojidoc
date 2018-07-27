@@ -1,6 +1,8 @@
 [package]
 name = "lojidoc"
 version = "0.1.0"
+licence = "Apache-2.0"
+description = "A tool for generating markown documentation for java projects."
 authors = ["josh <jobrud314@gmail.com>"]
 
 [dependencies]
