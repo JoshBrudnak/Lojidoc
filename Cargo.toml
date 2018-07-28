@@ -3,10 +3,22 @@ name = "lojidoc"
 version = "0.1.0"
 license = "Apache-2.0"
 description = "A tool for generating markown documentation for java projects."
-authors = ["josh <jobrud314@gmail.com>"]
+keywords = ["documentation", "java", "javadoc"]
+authors = ["Josh Brudnak <jobrud314@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/JoshBrudnak/Lojidoc"
+documentation = "https://joshbrudnak.github.io/Lojidoc/"
+
+exclude = [
+    ".travis.yml"
+]
+
+[badges]
+travis-ci = { repository = "JoshBrudnak/Javadoc-To-Markdown" }
 
 [dependencies]
 regex = "0.1.41"
 threadpool = "1.7.1"
 lazy_static = "1.0.1"
 clap = "2.32"
+ansi_term = "0.11"
