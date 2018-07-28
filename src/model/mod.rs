@@ -328,6 +328,15 @@ pub mod model {
                 return_type: self.return_type.clone(),
             }
         }
+        pub fn clone_params(&mut self) -> Vec<Param> {
+            let mut new_params = Vec::new();
+
+            for i in 0..self.parameters.len() {
+                new_params.push(self.parameters[i].clone());
+            }
+
+            new_params
+        }
         pub fn ch_line_num(&mut self, value: String) {
             self.line_num = value;
         }

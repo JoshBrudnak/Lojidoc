@@ -1,9 +1,11 @@
 pub mod parse {
     //! A module which handles the parsing for java files
+    extern crate colored;
     extern crate regex;
 
     use model::model::*;
 
+    use colored::*;
     use regex::Regex;
     use std::fs::File;
     use std::io::BufRead;
@@ -317,7 +319,13 @@ pub mod parse {
         }
     }
 
-    fn match_params(params: &Vec<Param>, jparams: &Vec<Param>, lint: bool) -> Vec<Param> {
+    fn match_params(
+        method: &mut Method,
+        jparams: &Vec<Param>,
+        jdoc_err: &mut String,
+        lint: bool,
+    ) -> Vec<Param> {
+        let params = method.clone_params();
         let mut new_param: Vec<Param> = Vec::new();
         for mut param in params {
             let mut found = false;
@@ -340,7 +348,15 @@ pub mod parse {
                 });
 
                 if lint {
-                    println!("Javadoc Parameter not found {}", param.name);
+                    jdoc_err.push_str(
+                        "\tJavadoc parameter not found "
+                            .yellow()
+                            .to_string()
+                            .as_str(),
+                    );
+                    jdoc_err.push_str(
+                        format!("{} Method: {}\n", param.name, method.name.clone()).as_str(),
+                    );
                 }
             }
         }
@@ -360,6 +376,7 @@ pub mod parse {
         let mut class = Class::new();
         let mut parse_state = ParseState::new();
         let mut jdoc = Doc::new();
+        let mut jdoc_errs = String::new();
 
         for (i, line) in buf.lines().enumerate() {
             let l = line.unwrap();
@@ -404,6 +421,23 @@ pub mod parse {
                         class = handle_class(class, &l);
                         class.ch_is_class(true);
 
+                        if lint {
+                            jdoc_errs.push_str(
+                                "Javadoc errors for class "
+                                    .green()
+                                    .bold()
+                                    .to_string()
+                                    .as_str(),
+                            );
+                            jdoc_errs.push_str(
+                                format!(
+                                    "{}\nFile: {}\n",
+                                    class.class_name,
+                                    path.to_str().unwrap().blue().to_string()
+                                ).as_str(),
+                            )
+                        }
+
                         if parse_state.doc_ready {
                             class.ch_description(jdoc.description.clone());
                             class.ch_author(jdoc.author.clone());
@@ -412,20 +446,21 @@ pub mod parse {
                             jdoc.clear();
                         } else {
                             if lint {
-                                let f = path.to_str().unwrap();
-                                println!(
-                                    "MISSING JAVADOC: No javadoc found for class {}\n{}\n",
-                                    class.class_name, f
+                                jdoc_errs.push_str(
+                                    "\tMISSING JAVADOC:".red().bold().to_string().as_str(),
                                 );
+                                jdoc_errs.push_str(" No javadoc found for class\n");
                             }
                         }
 
                         if class.description == "" && lint {
-                            let f = path.to_str().unwrap();
-                            println!(
-                                "Missing description for class {}\n{}\n",
-                                class.class_name, f
+                            jdoc_errs.push_str(
+                                "\tMissing description for class"
+                                    .yellow()
+                                    .to_string()
+                                    .as_str(),
                             );
+                            jdoc_errs.push_str(format!(" {}\n", class.class_name).as_str());
                         }
 
                         parse_state.ch_class(true);
@@ -445,19 +480,19 @@ pub mod parse {
                             jdoc.clear();
                         } else {
                             if lint {
-                                let f = path.to_str().unwrap();
-                                println!(
-                                    "MISSING JAVADOC: No javadoc found for interface {}\n{}\n",
-                                    class.class_name, f
+                                jdoc_errs.push_str(
+                                    "MISSING JAVADOC: ".red().bold().to_string().as_str(),
                                 );
+                                jdoc_errs.push_str("\tNo javadoc found for interface\n");
                             }
                         }
 
                         if class.description == "" && lint {
-                            let f = path.to_str().unwrap();
-                            println!(
-                                "Missing description for interface {}\n{}\n",
-                                class.class_name, f
+                            jdoc_errs.push_str(
+                                "\tMissing description for interface\n"
+                                    .yellow()
+                                    .to_string()
+                                    .as_str(),
                             );
                         }
 
@@ -479,7 +514,7 @@ pub mod parse {
                             }
 
                             let n_params: Vec<Param> =
-                                match_params(&j_method.parameters, &jdoc.params, lint);
+                                match_params(&mut j_method, &jdoc.params, &mut jdoc_errs, lint);
                             j_method.ch_params(n_params);
 
                             if !jdoc.exception.is_empty() {
@@ -488,24 +523,32 @@ pub mod parse {
                             jdoc.clear();
                         } else {
                             if lint {
-                                let f = path.to_str().unwrap();
-                                println!(
-                                    "MISSING JAVADOC: No javadoc found for method {}\n{}\n",
-                                    j_method.name, f
+                                jdoc_errs.push_str(
+                                    "\tMISSING JAVADOC: ".red().bold().to_string().as_str(),
+                                );
+                                jdoc_errs.push_str(
+                                    format!("No javadoc found for method {}\n", j_method.name)
+                                        .as_str(),
                                 );
                             }
                         }
 
                         if j_method.description == "" && lint {
-                            let f = path.to_str().unwrap();
-                            println!("Missing description for method {}\n{}\n", j_method.name, f);
+                            jdoc_errs.push_str(
+                                "\tMissing return description for method "
+                                    .yellow()
+                                    .to_string()
+                                    .as_str(),
+                            );
+                            jdoc_errs.push_str(format!("{}\n", j_method.name).as_str());
                         }
 
                         if j_method.return_type == "" && lint {
-                            let f = path.to_str().unwrap();
-                            println!(
-                                "Missing return description for method {}\n{}\n",
-                                j_method.return_type, f
+                            jdoc_errs.push_str(
+                                "\tMissing return return description for method \n"
+                                    .yellow()
+                                    .to_string()
+                                    .as_str(),
                             );
                         }
 
@@ -532,6 +575,9 @@ pub mod parse {
                 }
             }
         }
+
+        // Print all the errors found when linting the javadoc
+        println!("{}\n", jdoc_errs);
 
         class
     }

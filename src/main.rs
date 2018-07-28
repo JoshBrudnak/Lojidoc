@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate regex;
+extern crate colored;
 extern crate threadpool;
 
 mod model;
