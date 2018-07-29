@@ -57,18 +57,37 @@ pub mod parse {
     /// * `state` - the state of parsing the java file
     pub fn determine_line_type(line: &String, state: &ParseState) -> LineType {
         let method_match = r"(public|protected|private|static|\s) +[\w\[\]]+\s+(\w+) *\([^\)]*\)";
+        let split = line.split(" ");
+        let parts: Vec<&str> = split.collect();
 
-        if line.contains("package ") {
+        if line.contains("package ") && !state.class {
             LineType::IsPackage
         } else if line.contains("class ") && !state.comment && !state.doc {
             LineType::IsClass
         } else if line.contains("interface ") && !state.comment && !state.doc {
             LineType::IsInterface
-        } else if line.contains("import ") {
+        } else if line.contains("import ") && !state.class {
             LineType::IsImport
-        } else if line.contains("import ") {
-            LineType::IsVariable
-        } else if regex_match(&line, method_match) {
+        } else if line.contains(";")
+            && parts.len() > 1
+            && !regex_match(&line, method_match)
+            && !line.contains("//")
+            && !line.contains("* ")
+            && !line.contains("/*")
+            && state.class
+            && !state.method
+        {
+            // Case were the member variable assignment calls a contructor
+            if line.contains("(") {
+                if line.contains("=") {
+                    LineType::IsVariable
+                } else {
+                    LineType::IsOther
+                }
+            } else {
+                LineType::IsVariable
+            }
+        } else if regex_match(&line, method_match) && state.class && !state.method {
             if line.contains(" if(") {
                 LineType::IsOther
             } else if line.contains(" for(") {
@@ -93,7 +112,7 @@ pub mod parse {
         }
     }
 
-    fn handle_class(mut class: Class, line: &String) -> Class {
+    pub fn handle_class(mut class: Class, line: &String) -> Class {
         let access_match = r"(public|protected|private)";
         let split = line.split(" ");
         let parts: Vec<&str> = split.collect();
@@ -123,7 +142,7 @@ pub mod parse {
         return class;
     }
 
-    fn handle_interface(mut inter: Class, line: &String) -> Class {
+    pub fn handle_interface(mut inter: Class, line: &String) -> Class {
         let access_match = r"(public|protected|private)";
         let split = line.split(" ");
         let parts: Vec<&str> = split.collect();
@@ -141,20 +160,22 @@ pub mod parse {
         return inter;
     }
 
-    fn handle_method(line: &String, num: usize) -> Result<Method, &str> {
-        let access_match = r"(public|protected|private)";
+    pub fn handle_method(line: &String, num: usize) -> Result<Method, &str> {
         let parts = trim_whitespace(line);
         let mut method = Method::new();
         method.ch_line_num(num.to_string());
 
         for (i, method_part) in parts.iter().enumerate() {
-            if regex_match(&method_part, access_match) {
+            if method_part == "public"
+                || method_part == "private"
+                || method_part == "protected"
+            {
                 method.ch_privacy(method_part.clone().to_string());
-            } else if method_part.contains("void") {
+            } else if method_part == "void" {
                 method.ch_return_type("void".to_string());
-            } else if method_part.contains("static") {
+            } else if method_part == "static" {
                 method.ch_is_static(true);
-            } else if method_part.contains("exception") {
+            } else if method_part == "exception" {
                 if parts.len() > i + 1 {
                     let ex = Exception {
                         exception_type: String::new(),
@@ -195,7 +216,11 @@ pub mod parse {
                     }
                 }
 
-                method.ch_method_name(name_parts[0].to_string());
+                if name_parts[0] == "" {
+                    method.ch_method_name(parts[i - 1].clone());
+                } else {
+                    method.ch_method_name(name_parts[0].to_string());
+                }
             }
         }
 
@@ -607,3 +632,6 @@ pub mod parse {
         class
     }
 }
+
+#[cfg(test)]
+mod test;

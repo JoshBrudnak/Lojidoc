@@ -65,6 +65,7 @@ pub mod model {
         pub interfaces: Vec<String>,
         pub dependencies: Vec<String>,
         pub methods: Vec<Method>,
+        pub variables: Vec<Param>,
     }
 
     #[derive(Debug)]
@@ -86,12 +87,10 @@ pub mod model {
     /// Struct that represents the parsing state
     pub struct ParseState {
         pub class: bool,
-        pub interface: bool,
         pub method: bool,
         pub doc: bool,
         pub comment: bool,
         pub doc_ready: bool,
-        pub block_depth: i32,
     }
 
     impl Exception {
@@ -133,14 +132,19 @@ pub mod model {
                 class_name: String::new(),
                 exception: Exception::new(),
                 description: String::new(),
+                variables: Vec::new(),
                 methods: Vec::new(),
             }
         }
         pub fn clone(&mut self) -> Class {
             let mut new_methods = Vec::new();
+            let mut new_vars = Vec::new();
 
             for i in 0..self.methods.len() {
                 new_methods.push(self.methods[i].clone());
+            }
+            for i in 0..self.variables.len() {
+                new_vars.push(self.variables[i].clone());
             }
 
             Class {
@@ -158,6 +162,7 @@ pub mod model {
                 description: self.description.clone(),
                 exception: self.exception.clone(),
                 interfaces: self.interfaces.clone(),
+                variables: new_vars,
                 methods: new_methods,
             }
         }
@@ -370,19 +375,23 @@ pub mod model {
         pub fn new() -> ParseState {
             ParseState {
                 class: false,
-                interface: false,
                 method: false,
                 doc: false,
                 comment: false,
                 doc_ready: false,
-                block_depth: 0,
             }
         }
         pub fn ch_class(&mut self, value: bool) {
             self.class = value;
         }
+        pub fn ch_method(&mut self, value: bool) {
+            self.method = value;
+        }
         pub fn ch_doc(&mut self, value: bool) {
             self.doc = value;
+        }
+        pub fn ch_comment(&mut self, value: bool) {
+            self.comment = value;
         }
         pub fn ch_doc_ready(&mut self, value: bool) {
             self.doc_ready = value;
@@ -445,6 +454,7 @@ pub mod model {
     }
 
     /// Enum that is used to determine the line type for each line
+    #[derive(PartialEq, Debug)]
     pub enum LineType {
         IsPackage,
         IsImport,
