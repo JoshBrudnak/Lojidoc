@@ -66,6 +66,8 @@ pub mod parse {
             LineType::IsInterface
         } else if line.contains("import ") {
             LineType::IsImport
+        } else if line.contains("import ") {
+            LineType::IsVariable
         } else if regex_match(&line, method_match) {
             if line.contains(" if(") {
                 LineType::IsOther
@@ -355,7 +357,12 @@ pub mod parse {
                             .as_str(),
                     );
                     jdoc_err.push_str(
-                        format!("{} Method: {}\n", param.name, method.name.clone()).as_str(),
+                        format!(
+                            "{} in method: {} (Line: {})\n",
+                            param.name,
+                            method.name.clone(),
+                            method.line_num
+                        ).as_str(),
                     );
                 }
             }
@@ -367,7 +374,7 @@ pub mod parse {
     pub fn parse_file(path: &Path, lint: bool) -> Class {
         use LineType::{
             IsClass, IsComment, IsEnddoc, IsImport, IsInterface, IsMethod, IsOther, IsPackage,
-            IsStartdoc,
+            IsStartdoc, IsVariable,
         };
 
         let file = File::open(path).expect("File not found");
@@ -377,6 +384,7 @@ pub mod parse {
         let mut parse_state = ParseState::new();
         let mut jdoc = Doc::new();
         let mut jdoc_errs = String::new();
+        let mut bracket_depth = 0;
 
         for (i, line) in buf.lines().enumerate() {
             let l = line.unwrap();
@@ -443,6 +451,17 @@ pub mod parse {
                             class.ch_author(jdoc.author.clone());
                             class.ch_version(jdoc.version.clone());
                             class.ch_deprecation(jdoc.deprecated.clone());
+
+                            if class.description == "" && lint {
+                                jdoc_errs.push_str(
+                                    "\tMissing description for class"
+                                        .yellow()
+                                        .to_string()
+                                        .as_str(),
+                                );
+                                jdoc_errs.push_str(format!(" {}\n", class.class_name).as_str());
+                            }
+
                             jdoc.clear();
                         } else {
                             if lint {
@@ -451,16 +470,6 @@ pub mod parse {
                                 );
                                 jdoc_errs.push_str(" No javadoc found for class\n");
                             }
-                        }
-
-                        if class.description == "" && lint {
-                            jdoc_errs.push_str(
-                                "\tMissing description for class"
-                                    .yellow()
-                                    .to_string()
-                                    .as_str(),
-                            );
-                            jdoc_errs.push_str(format!(" {}\n", class.class_name).as_str());
                         }
 
                         parse_state.ch_class(true);
@@ -477,6 +486,16 @@ pub mod parse {
                             class.ch_author(jdoc.author.clone());
                             class.ch_version(jdoc.version.clone());
                             class.ch_deprecation(jdoc.deprecated.clone());
+
+                            if class.description == "" && lint {
+                                jdoc_errs.push_str(
+                                    "\tMissing description for interface\n"
+                                        .yellow()
+                                        .to_string()
+                                        .as_str(),
+                                );
+                            }
+
                             jdoc.clear();
                         } else {
                             if lint {
@@ -485,15 +504,6 @@ pub mod parse {
                                 );
                                 jdoc_errs.push_str("\tNo javadoc found for interface\n");
                             }
-                        }
-
-                        if class.description == "" && lint {
-                            jdoc_errs.push_str(
-                                "\tMissing description for interface\n"
-                                    .yellow()
-                                    .to_string()
-                                    .as_str(),
-                            );
                         }
 
                         parse_state.ch_class(true);
@@ -520,6 +530,30 @@ pub mod parse {
                             if !jdoc.exception.is_empty() {
                                 j_method.ch_exception(jdoc.exception.clone());
                             }
+
+                            if j_method.description == "" && lint {
+                                jdoc_errs.push_str(
+                                    "\tMissing description for method "
+                                        .yellow()
+                                        .to_string()
+                                        .as_str(),
+                                );
+                                jdoc_errs.push_str(
+                                    format!("{} (Line: {})\n", j_method.name, i + 1).as_str(),
+                                );
+                            }
+
+                            if j_method.return_type == "" && lint {
+                                jdoc_errs.push_str(
+                                    "\tMissing return description for method "
+                                        .yellow()
+                                        .to_string()
+                                        .as_str(),
+                                );
+                                jdoc_errs.push_str(
+                                    format!("{} (Line: {})\n", j_method.name, i + 1).as_str(),
+                                );
+                            }
                             jdoc.clear();
                         } else {
                             if lint {
@@ -527,29 +561,13 @@ pub mod parse {
                                     "\tMISSING JAVADOC: ".red().bold().to_string().as_str(),
                                 );
                                 jdoc_errs.push_str(
-                                    format!("No javadoc found for method {}\n", j_method.name)
-                                        .as_str(),
+                                    format!(
+                                        "No javadoc found for method {} (Line: {})\n",
+                                        j_method.name,
+                                        i + 1
+                                    ).as_str(),
                                 );
                             }
-                        }
-
-                        if j_method.description == "" && lint {
-                            jdoc_errs.push_str(
-                                "\tMissing return description for method "
-                                    .yellow()
-                                    .to_string()
-                                    .as_str(),
-                            );
-                            jdoc_errs.push_str(format!("{}\n", j_method.name).as_str());
-                        }
-
-                        if j_method.return_type == "" && lint {
-                            jdoc_errs.push_str(
-                                "\tMissing return return description for method \n"
-                                    .yellow()
-                                    .to_string()
-                                    .as_str(),
-                            );
                         }
 
                         class.add_method(j_method);
@@ -557,6 +575,7 @@ pub mod parse {
                     parse_state.ch_doc_ready(false);
                 }
                 IsComment => {}
+                IsVariable => {}
                 IsStartdoc => {
                     doc_buffer.clear();
                     parse_state.ch_doc(true);
@@ -570,9 +589,15 @@ pub mod parse {
                 }
                 IsOther => {
                     if parse_state.doc {
-                        doc_buffer.push(l);
+                        doc_buffer.push(l.clone());
                     }
                 }
+            }
+
+            if l.contains("{") && !l.contains("}") {
+                bracket_depth = bracket_depth + 1;
+            } else if l.contains("{") && !l.contains("}") {
+                bracket_depth = bracket_depth - 1;
             }
         }
 

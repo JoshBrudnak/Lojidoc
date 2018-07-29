@@ -448,6 +448,7 @@ pub mod model {
     pub enum LineType {
         IsPackage,
         IsImport,
+        IsVariable,
         IsClass,
         IsInterface,
         IsMethod,
