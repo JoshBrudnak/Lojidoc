@@ -468,3 +468,6 @@ pub mod model {
         IsOther,
     }
 }
+
+#[cfg(test)]
+mod test;
