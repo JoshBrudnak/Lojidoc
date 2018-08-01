@@ -8,6 +8,7 @@ pub mod parse {
     use colored::*;
     use regex::Regex;
     use std::fs::File;
+    use std::io::Read;
     use std::io::BufRead;
     use std::io::BufReader;
     use std::path::Path;
@@ -44,7 +45,7 @@ pub mod parse {
         }
     }
 
-    fn trim_paren(part: String) -> String {
+    pub fn trim_paren(part: String) -> String {
         let no_paren: Vec<&str> = part.split(&[')', '{'][..]).collect();
         no_paren.join("")
     }
@@ -345,6 +346,7 @@ pub mod parse {
             deprecated: deprecated,
         }
     }
+    /*
 
     fn match_params(
         method: &mut Method,
@@ -395,15 +397,61 @@ pub mod parse {
 
         new_param
     }
+    */
+
+    pub fn parse_contents(content: &str) -> Vec<String> {
+        let mut tokens: Vec<String> = Vec::new();
+        let mut curr_token = String::new();
+        let mut block_depth = 0;
+        let mut blob = content.chars();
+
+        loop {
+            let ch_res = blob.next();
+
+            match ch_res {
+                Some(ch) => {
+
+                    match ch {
+                        ' ' | '\n' | '\t' | ';' => {
+                            if block_depth <= 1 && curr_token.len() > 0 {
+                                tokens.push(curr_token.to_string());
+                                curr_token = String::new();
+                            }
+                        }
+                        '{' => block_depth += 1,
+                        '}' => block_depth -= 1,
+                        _ => {
+                            if block_depth <= 1 {
+                                curr_token.push_str(ch.to_string().as_str());
+                            }
+                        }
+                    }
+                },
+                None => break,
+            }
+        }
+
+        tokens
+    }
+
+    pub fn contrust_ast(tokens: Vec<String>) {
+        let mut class = Class::new();
+        let mut parse_state = ParseState::new();
+        let mut jdoc = Doc::new();
+        let mut jdoc_errs = String::new();
+
+        for (i, elem) in tokens.iter().enumerate() {
+            match elem.as_ref() {
+                "/**" => parse_state.ch_doc(true),
+                "class" => {
+                    class.ch_class_name(tokens[i + 1].clone());
+                }
+                _ => println!("something else!"),
+            }
+        }
+    }
 
     pub fn parse_file(path: &Path, lint: bool) -> Class {
-        use LineType::{
-            IsClass, IsComment, IsEnddoc, IsImport, IsInterface, IsMethod, IsOther, IsPackage,
-            IsStartdoc, IsVariable,
-        };
-
-        let file = File::open(path).expect("File not found");
-        let buf = BufReader::new(&file);
         let mut doc_buffer: Vec<String> = Vec::new();
         let mut class = Class::new();
         let mut parse_state = ParseState::new();
@@ -411,220 +459,14 @@ pub mod parse {
         let mut jdoc_errs = String::new();
         let mut bracket_depth = 0;
 
-        for (i, line) in buf.lines().enumerate() {
-            let l = line.unwrap();
-            let line_type = determine_line_type(&l, &parse_state);
+        let file = File::open(path).expect("Could not open file");
+        let mut contents = String::new();
+        let mut buf = BufReader::new(file);
+        buf.read_to_string(&mut contents);
+        println!("{}", contents);
 
-            match line_type {
-                IsPackage => {
-                    let split = l.split(" ");
-                    let parts: Vec<&str> = split.collect();
-
-                    if parse_state.doc_ready {
-                        class.ch_license(jdoc.description.clone());
-                        jdoc.clear();
-
-                        parse_state.ch_doc_ready(false);
-                    }
-
-                    for (num, w) in parts.iter().enumerate() {
-                        if w.contains("package") {
-                            let mut pack_name = &parts[num + 1].trim();
-                            class.ch_package_name(pack_name.to_string().replace(";", ""));
-                        }
-                    }
-                }
-                IsImport => {
-                    let split = l.split(" ");
-                    let mut parts: Vec<&str> = split.collect();
-                    let mut im_name = String::new();
-
-                    for (num, w) in parts.iter().enumerate() {
-                        if w.contains("import") {
-                            im_name.push_str(parts[num + 1].trim());
-                            if parts.len() > num + 2 {
-                                im_name.push_str(format!(" {}", parts[num + 2]).as_str());
-                            }
-                            class.add_dependency(im_name.replace(";", ""));
-                        }
-                    }
-                }
-                IsClass => {
-                    if !parse_state.class {
-                        class = handle_class(class, &l);
-                        class.ch_is_class(true);
-
-                        if lint {
-                            jdoc_errs.push_str(
-                                "Javadoc errors for class "
-                                    .green()
-                                    .bold()
-                                    .to_string()
-                                    .as_str(),
-                            );
-                            jdoc_errs.push_str(
-                                format!(
-                                    "{}\nFile: {}\n",
-                                    class.class_name,
-                                    path.to_str().unwrap().blue().to_string()
-                                ).as_str(),
-                            )
-                        }
-
-                        if parse_state.doc_ready {
-                            class.ch_description(jdoc.description.clone());
-                            class.ch_author(jdoc.author.clone());
-                            class.ch_version(jdoc.version.clone());
-                            class.ch_deprecation(jdoc.deprecated.clone());
-
-                            if class.description == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing description for class"
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                                jdoc_errs.push_str(format!(" {}\n", class.class_name).as_str());
-                            }
-
-                            jdoc.clear();
-                        } else {
-                            if lint {
-                                jdoc_errs.push_str(
-                                    "\tMISSING JAVADOC:".red().bold().to_string().as_str(),
-                                );
-                                jdoc_errs.push_str(" No javadoc found for class\n");
-                            }
-                        }
-
-                        parse_state.ch_class(true);
-                        parse_state.ch_doc_ready(false);
-                    }
-                }
-                IsInterface => {
-                    if !parse_state.class {
-                        class = handle_interface(class, &l);
-                        class.ch_is_class(false);
-
-                        if parse_state.doc_ready {
-                            class.ch_description(jdoc.description.clone());
-                            class.ch_author(jdoc.author.clone());
-                            class.ch_version(jdoc.version.clone());
-                            class.ch_deprecation(jdoc.deprecated.clone());
-
-                            if class.description == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing description for interface\n"
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                            }
-
-                            jdoc.clear();
-                        } else {
-                            if lint {
-                                jdoc_errs.push_str(
-                                    "MISSING JAVADOC: ".red().bold().to_string().as_str(),
-                                );
-                                jdoc_errs.push_str("\tNo javadoc found for interface\n");
-                            }
-                        }
-
-                        parse_state.ch_class(true);
-                        parse_state.ch_doc_ready(false);
-                    }
-                }
-                IsMethod => {
-                    let method_res = handle_method(&l, i + 1);
-
-                    if method_res.is_ok() {
-                        let mut j_method = method_res.unwrap();
-
-                        if parse_state.doc_ready {
-                            j_method.ch_description(jdoc.description.clone());
-
-                            if jdoc.return_desc != "" {
-                                j_method.ch_return_type(jdoc.return_desc.clone());
-                            }
-
-                            let n_params: Vec<Param> =
-                                match_params(&mut j_method, &jdoc.params, &mut jdoc_errs, lint);
-                            j_method.ch_params(n_params);
-
-                            if !jdoc.exception.is_empty() {
-                                j_method.ch_exception(jdoc.exception.clone());
-                            }
-
-                            if j_method.description == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing description for method "
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                                jdoc_errs.push_str(
-                                    format!("{} (Line: {})\n", j_method.name, i + 1).as_str(),
-                                );
-                            }
-
-                            if j_method.return_type == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing return description for method "
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                                jdoc_errs.push_str(
-                                    format!("{} (Line: {})\n", j_method.name, i + 1).as_str(),
-                                );
-                            }
-                            jdoc.clear();
-                        } else {
-                            if lint {
-                                jdoc_errs.push_str(
-                                    "\tMISSING JAVADOC: ".red().bold().to_string().as_str(),
-                                );
-                                jdoc_errs.push_str(
-                                    format!(
-                                        "No javadoc found for method {} (Line: {})\n",
-                                        j_method.name,
-                                        i + 1
-                                    ).as_str(),
-                                );
-                            }
-                        }
-
-                        class.add_method(j_method);
-                    }
-                    parse_state.ch_doc_ready(false);
-                }
-                IsComment => {}
-                IsVariable => {}
-                IsStartdoc => {
-                    doc_buffer.clear();
-                    parse_state.ch_doc(true);
-                }
-                IsEnddoc => {
-                    if parse_state.doc {
-                        jdoc = handle_doc(&doc_buffer);
-                        parse_state.ch_doc(false);
-                        parse_state.ch_doc_ready(true);
-                    }
-                }
-                IsOther => {
-                    if parse_state.doc {
-                        doc_buffer.push(l.clone());
-                    }
-                }
-            }
-
-            if l.contains("{") && !l.contains("}") {
-                bracket_depth = bracket_depth + 1;
-            } else if l.contains("{") && !l.contains("}") {
-                bracket_depth = bracket_depth - 1;
-            }
-        }
+        let tokens = parse_contents(&contents);
+        println!("{:?}", tokens);
 
         // Print all the errors found when linting the javadoc
         println!("{}\n", jdoc_errs);
