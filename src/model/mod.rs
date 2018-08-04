@@ -1,11 +1,59 @@
 pub mod model {
     //! Module that contains all necessary data stuctures for parsing javadocs and generating docs
+
+    /// Gets a full list of all the keywords for the lexer
+    pub fn get_keywords<'a>() -> Vec<&'a str> {
+        vec![
+            "abstract",
+            "class",
+            "const",
+            "default",
+            "else",
+            "if",
+            "enum",
+            "extends",
+            "final",
+            "for",
+            "implements",
+            "import",
+            "instanseof",
+            "interface",
+            "native",
+            "new",
+            "package",
+            "public",
+            "private",
+            "protected",
+            "return",
+            "static",
+            "strictfp",
+            "super",
+            "switch",
+            "synchronized",
+            "this",
+            "throw",
+            "throws",
+            "transient",
+            "try",
+            "void",
+            "volatile",
+            "while",
+        ]
+    }
+
     #[derive(Debug)]
     /// Struct representing method parameter data contained in javadoc and method declaration
     pub struct Param {
         pub desc: String,
         pub name: String,
         pub var_type: String,
+    }
+
+    #[derive(Debug)]
+    pub enum Token {
+        symbol(String),
+        keyword(String),
+        expression_end(String),
     }
 
     /// Struct representing all the project data

@@ -399,8 +399,24 @@ pub mod parse {
     }
     */
 
-    pub fn parse_contents(content: &str) -> Vec<String> {
-        let mut tokens: Vec<String> = Vec::new();
+
+    macro_rules! is_keyword {
+        ($w:expr, $k:expr) => {
+            {
+                let mut found = false;
+                for key in $k {
+                    if key == $w {
+                        found = true
+                    }
+                }
+
+                found
+            }
+        };
+    }
+
+    pub fn lex_contents(content: &str) -> Vec<Token> {
+        let mut tokens: Vec<Token> = Vec::new();
         let mut curr_token = String::new();
         let mut block_depth = 0;
         let mut blob = content.chars();
@@ -410,15 +426,46 @@ pub mod parse {
 
             match ch_res {
                 Some(ch) => {
-
                     match ch {
-                        ' ' | '\n' | '\t' | ';' => {
+                        ' ' | '\t' | '\n' => {
                             if block_depth <= 1 && curr_token.len() > 0 {
-                                tokens.push(curr_token.to_string());
+                                let keywords = get_keywords();
+                                if is_keyword!(curr_token, keywords) {
+                                    tokens.push(Token::keyword(curr_token.to_string()));
+                                } else {
+                                    tokens.push(Token::symbol(curr_token.to_string()));
+                                }
                                 curr_token = String::new();
                             }
                         }
-                        '{' => block_depth += 1,
+                        ';' => {
+                            if block_depth <= 1 && curr_token.len() > 0 {
+                                let keywords = get_keywords();
+                                if is_keyword!(curr_token, keywords) {
+                                    tokens.push(Token::keyword(curr_token.to_string()));
+                                    tokens.push(Token::expression_end(";".to_string()));
+                                } else {
+                                    tokens.push(Token::symbol(curr_token.to_string()));
+                                    tokens.push(Token::expression_end(";".to_string()));
+                                }
+                                curr_token = String::new();
+                            }
+                        }
+                        '{' => {
+                            if block_depth <= 1 && curr_token.len() > 0 {
+                                let keywords = get_keywords();
+                                if is_keyword!(curr_token, keywords) {
+                                    tokens.push(Token::keyword(curr_token.to_string()));
+                                    tokens.push(Token::expression_end("{".to_string()));
+                                } else {
+                                    tokens.push(Token::symbol(curr_token.to_string()));
+                                    tokens.push(Token::expression_end("{".to_string()));
+                                }
+                                curr_token = String::new();
+                            }
+
+                            block_depth += 1;
+                        }
                         '}' => block_depth -= 1,
                         _ => {
                             if block_depth <= 1 {
@@ -465,7 +512,7 @@ pub mod parse {
         buf.read_to_string(&mut contents);
         println!("{}", contents);
 
-        let tokens = parse_contents(&contents);
+        let tokens = lex_contents(&contents);
         println!("{:?}", tokens);
 
         // Print all the errors found when linting the javadoc
