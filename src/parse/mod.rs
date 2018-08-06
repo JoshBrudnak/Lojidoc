@@ -1,164 +1,45 @@
 pub mod parse {
     //! A module which handles the parsing for java files
     extern crate colored;
-    extern crate regex;
 
-    use model::model::*;
+    use model::model::Class;
+    use model::model::Method;
+    use model::model::Param;
+    use model::model::Doc;
+    use model::model::Token;
+    use model::model::ParseState;
+    use model::model::Exception;
+    use model::model::get_keywords;
 
     use colored::*;
-    use regex::Regex;
     use std::fs::File;
     use std::io::Read;
-    use std::io::BufRead;
     use std::io::BufReader;
     use std::path::Path;
-
-    fn regex_match(text: &str, regex_str: &str) -> bool {
-        let reg = Regex::new(regex_str).unwrap();
-
-        reg.is_match(text)
-    }
-
-    fn start_doc_match(text: &String) -> bool {
-        if text.contains(r"/**") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    fn start_comment_match(text: &String) -> bool {
-        if text.contains(r"/*") && !text.contains("/**") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    fn end_doc_match(text: &String) -> bool {
-        if text.contains(r"**/") {
-            return true;
-        } else if text.contains(r"*/") {
-            return true;
-        } else {
-            return false;
-        }
-    }
 
     pub fn trim_paren(part: String) -> String {
         let no_paren: Vec<&str> = part.split(&[')', '{'][..]).collect();
         no_paren.join("")
     }
 
-    /// Determines the line type of a line of java code
-    ///
-    /// # Arguments
-    ///
-    /// * `line` - the line to determine the type from
-    /// * `state` - the state of parsing the java file
-    pub fn determine_line_type(line: &String, state: &ParseState) -> LineType {
-        let method_match = r"(public|protected|private|static|\s) +[\w\[\]]+\s+(\w+) *\([^\)]*\)";
-        let split = line.split(" ");
-        let parts: Vec<&str> = split.collect();
+    pub fn handle_class(
+        mut class: Class, keys: Vec<String>, syms: Vec<String>, docs: Vec<String>) -> Class {
 
-        if line.contains("package ") && !state.class {
-            LineType::IsPackage
-        } else if line.contains("class ") && !state.comment && !state.doc {
-            LineType::IsClass
-        } else if line.contains("interface ") && !state.comment && !state.doc {
-            LineType::IsInterface
-        } else if line.contains("import ") && !state.class {
-            LineType::IsImport
-        } else if line.contains(";")
-            && parts.len() > 1
-            && !regex_match(&line, method_match)
-            && !line.contains("//")
-            && !line.contains("* ")
-            && !line.contains("/*")
-            && state.class
-            && !state.method
-        {
-            // Case were the member variable assignment calls a contructor
-            if line.contains("(") {
-                if line.contains("=") {
-                    LineType::IsVariable
-                } else {
-                    LineType::IsOther
-                }
-            } else {
-                LineType::IsVariable
-            }
-        } else if regex_match(&line, method_match) && state.class && !state.method {
-            if line.contains(" if(") {
-                LineType::IsOther
-            } else if line.contains(" for(") {
-                LineType::IsOther
-            } else if line.contains(" while(") {
-                LineType::IsOther
-            } else if line.contains(" catch(") {
-                LineType::IsOther
-            } else {
-                LineType::IsMethod
-            }
-        } else if start_doc_match(&line) {
-            LineType::IsStartdoc
-        } else if start_comment_match(&line) {
-            LineType::IsStartdoc
-        } else if end_doc_match(&line) {
-            LineType::IsEnddoc
-        } else if line.contains("//") {
-            LineType::IsComment
-        } else {
-            LineType::IsOther
-        }
-    }
+        let except_buf: Vec<&str> = Vec::new();
+        let impl_buf: Vec<&str> = Vec::new();
 
-    pub fn handle_class(mut class: Class, line: &String) -> Class {
-        let access_match = r"(public|protected|private)";
-        let split = line.split(" ");
-        let parts: Vec<&str> = split.collect();
-
-        for (num, class_part) in parts.iter().enumerate() {
-            if regex_match(&class_part, access_match) {
-                class.ch_access(class_part.clone().to_string());
-            } else if class_part.contains("class") {
-                if parts.len() > num + 1 {
-                    class.ch_class_name(parts[num + 1].to_string());
-                }
-            } else if class_part.contains("extends") {
-                if parts.len() > num + 1 {
-                    class.ch_parent(parts[num + 1].to_string());
-                }
-            } else if class_part.contains("implements") {
-                if parts.len() > num + 1 {
-                    class.add_interface(parts[num + 1].to_string());
-                }
-            } else if class_part.contains("exception") {
-                if parts.len() > num + 1 {
-                    class.ch_class_name(parts[num + 1].to_string());
-                }
+        for (i, k) in keys.iter().enumerate() {
+            match k.as_ref() {
+                "public" | "protected" | "private" => class.ch_access(k.to_string()),
+                _ => class.add_modifier(k.to_string()),
             }
         }
 
-        return class;
-    }
-
-    pub fn handle_interface(mut inter: Class, line: &String) -> Class {
-        let access_match = r"(public|protected|private)";
-        let split = line.split(" ");
-        let parts: Vec<&str> = split.collect();
-
-        for (num, inter_part) in parts.iter().enumerate() {
-            if regex_match(&inter_part, access_match) {
-                inter.ch_access(inter_part.clone().to_string());
-            } else if inter_part.contains("interface") {
-                if parts.len() > num + 1 {
-                    inter.ch_class_name(parts[num + 1].to_string());
-                }
-            }
+        if syms.len() > 0 {
+            class.ch_class_name(syms[0].to_string());
         }
 
-        return inter;
+        class.clone()
     }
 
     pub fn handle_method(line: &String, num: usize) -> Result<Method, &str> {
@@ -399,7 +280,6 @@ pub mod parse {
     }
     */
 
-
     macro_rules! is_keyword {
         ($w:expr, $k:expr) => {
             {
@@ -420,6 +300,7 @@ pub mod parse {
         let mut curr_token = String::new();
         let mut block_depth = 0;
         let mut blob = content.chars();
+        let mut join = false;
 
         loop {
             let ch_res = blob.next();
@@ -433,11 +314,19 @@ pub mod parse {
                                 if is_keyword!(curr_token, keywords) {
                                     tokens.push(Token::keyword(curr_token.to_string()));
                                 } else {
-                                    tokens.push(Token::symbol(curr_token.to_string()));
+                                    // If join flag is true current token is join with the current
+                                    // token
+                                    if !join {
+                                        tokens.push(Token::symbol(curr_token.to_string()));
+                                    } else {
+                                        curr_token.push_str(",");
+                                        join = false;
+                                    }
                                 }
                                 curr_token = String::new();
                             }
                         }
+                        ',' => join = true,
                         ';' => {
                             if block_depth <= 1 && curr_token.len() > 0 {
                                 let keywords = get_keywords();
@@ -481,30 +370,44 @@ pub mod parse {
         tokens
     }
 
-    pub fn contrust_ast(tokens: Vec<String>) {
+    pub fn contrust_ast(tokens: Vec<Token>) {
         let mut class = Class::new();
         let mut parse_state = ParseState::new();
         let mut jdoc = Doc::new();
         let mut jdoc_errs = String::new();
+        let mut symbols: Vec<String> = Vec::new();
+        let mut keywords: Vec<String> = Vec::new();
+        let mut jdoc_keywords: Vec<String> = Vec::new();
 
-        for (i, elem) in tokens.iter().enumerate() {
-            match elem.as_ref() {
-                "/**" => parse_state.ch_doc(true),
-                "class" => {
-                    class.ch_class_name(tokens[i + 1].clone());
+        for (i, token) in tokens.iter().enumerate() {
+            match token {
+                Token::keyword(key) => {
+                    match key.as_ref() {
+                        "class" => parse_state.ch_class(true),
+                        "interface" => parse_state.ch_class(true),
+                        "package" => parse_state.ch_class(true),
+                        "import" => parse_state.ch_class(true),
+                        "enum" => parse_state.ch_class(true),
+                        _ => keywords.push(key.to_string()),
+                    }
+                },
+                Token::symbol(word) => symbols.push(word.to_string()),
+                Token::doc_keyword(word) => jdoc_keywords.push(word.to_string()),
+                Token::expression_end(end) => {
+                    if parse_state.class {
+                        class = handle_class(class, keywords, symbols, jdoc_keywords);
+                    }
+
+                   // class.ch_class_name(tokens[i + 1].clone());
                 }
-                _ => println!("something else!"),
             }
         }
     }
 
     pub fn parse_file(path: &Path, lint: bool) -> Class {
-        let mut doc_buffer: Vec<String> = Vec::new();
         let mut class = Class::new();
-        let mut parse_state = ParseState::new();
         let mut jdoc = Doc::new();
         let mut jdoc_errs = String::new();
-        let mut bracket_depth = 0;
 
         let file = File::open(path).expect("Could not open file");
         let mut contents = String::new();

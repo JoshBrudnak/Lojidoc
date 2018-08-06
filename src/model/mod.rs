@@ -41,6 +41,30 @@ pub mod model {
         ]
     }
 
+    /// Gets a full list of all the javadoc keywords for the lexer
+    pub fn get_jdoc_keywords<'a>() -> Vec<&'a str> {
+        vec![
+            "@return",
+            "@param",
+            "@author",
+            "@code",
+            "@deprecated",
+            "@docRoot",
+            "@exception",
+            "@inheritDoc",
+            "@link",
+            "@linkplain",
+            "@literal",
+            "@see",
+            "@throws",
+            "@since",
+            "@serialData",
+            "@serialField",
+            "@value",
+            "@version",
+        ]
+    }
+
     #[derive(Debug)]
     /// Struct representing method parameter data contained in javadoc and method declaration
     pub struct Param {
@@ -53,6 +77,7 @@ pub mod model {
     pub enum Token {
         symbol(String),
         keyword(String),
+        doc_keyword(String),
         expression_end(String),
     }
 
@@ -112,6 +137,7 @@ pub mod model {
         pub exception: Exception,
         pub interfaces: Vec<String>,
         pub dependencies: Vec<String>,
+        pub modifiers: Vec<String>,
         pub methods: Vec<Method>,
         pub variables: Vec<Param>,
     }
@@ -180,6 +206,7 @@ pub mod model {
                 class_name: String::new(),
                 exception: Exception::new(),
                 description: String::new(),
+                modifiers: Vec::new(),
                 variables: Vec::new(),
                 methods: Vec::new(),
             }
@@ -187,12 +214,16 @@ pub mod model {
         pub fn clone(&mut self) -> Class {
             let mut new_methods = Vec::new();
             let mut new_vars = Vec::new();
+            let mut new_mods = Vec::new();
 
             for i in 0..self.methods.len() {
                 new_methods.push(self.methods[i].clone());
             }
             for i in 0..self.variables.len() {
                 new_vars.push(self.variables[i].clone());
+            }
+            for i in 0..self.variables.len() {
+                new_mods.push(self.modifiers[i].clone());
             }
 
             Class {
@@ -210,6 +241,7 @@ pub mod model {
                 description: self.description.clone(),
                 exception: self.exception.clone(),
                 interfaces: self.interfaces.clone(),
+                modifiers: new_mods,
                 variables: new_vars,
                 methods: new_methods,
             }
@@ -275,6 +307,9 @@ pub mod model {
         }
         pub fn add_interface(&mut self, value: String) {
             self.interfaces.push(value);
+        }
+        pub fn add_modifier(&mut self, value: String) {
+            self.modifiers.push(value);
         }
         pub fn ch_exception(&mut self, value: Exception) {
             self.exception = value;
