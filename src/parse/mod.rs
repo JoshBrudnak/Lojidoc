@@ -9,7 +9,7 @@ pub mod parse {
     use model::model::Token;
     use model::model::ParseState;
     use model::model::Exception;
-    use model::model::get_keywords;
+    use grammar::grammar::get_keywords;
 
     use colored::*;
     use std::fs::File;

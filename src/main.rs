@@ -5,6 +5,7 @@ extern crate threadpool;
 
 mod model;
 mod parse;
+mod grammar;
 
 use clap::App;
 use clap::Arg;
@@ -20,7 +21,6 @@ use model::model::Class;
 use model::model::Method;
 use model::model::Interface;
 use model::model::Project;
-use model::model::LineType;
 use parse::parse::parse_file;
 
 fn is_java_file(file: &str) -> bool {
