@@ -1,11 +1,11 @@
 extern crate clap;
-extern crate regex;
 extern crate colored;
+extern crate regex;
 extern crate threadpool;
 
+mod grammar;
 mod model;
 mod parse;
-mod grammar;
 
 use clap::App;
 use clap::Arg;
@@ -18,8 +18,8 @@ use std::sync::Arc;
 use threadpool::ThreadPool;
 
 use model::model::Class;
-use model::model::Method;
 use model::model::Interface;
+use model::model::Method;
 use model::model::Project;
 use parse::parse::parse_file;
 
@@ -78,8 +78,11 @@ pub fn gen_class_docs(class: Class) -> String {
 
     if class.file_path != "" {
         doc.push_str(
-            format!("# Class {} [[src]]({})  \n\n", class.class_name, class.file_path)
-            .as_str());
+            format!(
+                "# Class {} [[src]]({})  \n\n",
+                class.class_name, class.file_path
+            ).as_str(),
+        );
     } else {
         doc.push_str(format!("# Class {}\n\n", class.class_name).as_str());
     }
@@ -147,8 +150,12 @@ pub fn gen_interface_docs(inter: Interface) -> String {
     let mut doc = String::new();
 
     if inter.file_path != "" {
-        doc.push_str(format!("# Interface {} [[src]]({})  \n\n", inter.name, inter.file_path).as_str());
-
+        doc.push_str(
+            format!(
+                "# Interface {} [[src]]({})  \n\n",
+                inter.name, inter.file_path
+            ).as_str(),
+        );
     } else {
         doc.push_str(format!("# Interface {}\n\n", inter.name).as_str());
     }
@@ -244,7 +251,8 @@ pub fn generate_markdown(proj: Project, dest: &str) {
 
         let mut doc = gen_class_docs(class.clone());
         doc.push_str(gen_method_docs(class.methods, class.file_path).as_str());
-        file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
+        file.write(doc.as_str().as_bytes())
+            .expect("Not able to write to file");
 
         println!("{}.{} was created", class.class_name, "md");
     }
@@ -255,7 +263,8 @@ pub fn generate_markdown(proj: Project, dest: &str) {
 
         let mut doc = gen_interface_docs(inter.clone());
         doc.push_str(gen_method_docs(inter.methods, inter.file_path).as_str());
-        file.write(doc.as_str().as_bytes()).expect("Not able to write to file");
+        file.write(doc.as_str().as_bytes())
+            .expect("Not able to write to file");
 
         println!("{}.{} was created", inter.name, "md");
     }
@@ -344,17 +353,20 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-         let mut class = parse_file(&file, true);
+        let mut class = parse_file(&file, true);
 
-         if !class.is_class {
-             project.add_interface(class.to_interface());
-         } else {
-             project.add_class(class.clone());
-         }
+        if !class.is_class {
+            project.add_interface(class.to_interface());
+        } else {
+            project.add_class(class.clone());
+        }
     }
 
     generate_markdown(project, dest.as_str());
-    println!("\nDocumentation finished. Generated {} markdown files.", file_paths.len());
+    println!(
+        "\nDocumentation finished. Generated {} markdown files.",
+        file_paths.len()
+    );
 }
 
 /// Handles the single threaded option for running the application
@@ -369,22 +381,25 @@ pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, 
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-         let mut class = parse_file(&file, verbose);
+        let mut class = parse_file(&file, verbose);
 
-         let m_context = resolve_context(file, &context);
+        let m_context = resolve_context(file, &context);
 
-         if m_context != "" {
-             class.ch_file_path(m_context);
-         }
-         if !class.is_class {
-             project.add_interface(class.to_interface());
-         } else {
-             project.add_class(class.clone());
-         }
+        if m_context != "" {
+            class.ch_file_path(m_context);
+        }
+        if !class.is_class {
+            project.add_interface(class.to_interface());
+        } else {
+            project.add_class(class.clone());
+        }
     }
 
     generate_markdown(project, dest.as_str());
-    println!("\nDocumentation finished. Generated {} markdown files.", file_paths.len());
+    println!(
+        "\nDocumentation finished. Generated {} markdown files.",
+        file_paths.len()
+    );
 }
 
 /// Handles the thread pooling the application
@@ -434,7 +449,10 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose
 
     pool.join();
 
-    println!("\nDocumentation finished. Generated {} markdown files.", files.len());
+    println!(
+        "\nDocumentation finished. Generated {} markdown files.",
+        files.len()
+    );
 }
 
 fn main() {
@@ -458,7 +476,7 @@ fn main() {
         .arg(
             Arg::with_name("lint")
                 .help("Check a java project for incorrent and missing javadocs")
-                .short("l")
+                .short("l"),
         )
         .arg(
             Arg::with_name("verbose")
@@ -487,10 +505,7 @@ fn main() {
         .value_of("destination")
         .unwrap_or("./generated/")
         .to_string();
-    let context = matches
-        .value_of("context")
-        .unwrap_or("")
-        .to_string();
+    let context = matches.value_of("context").unwrap_or("").to_string();
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
     let single_thread = matches.is_present("single_thread");
     let lint = matches.is_present("lint");
@@ -507,7 +522,6 @@ fn main() {
         } else {
             document(file_paths, dest, context, verbose);
         }
-
     } else {
         println!("No java files found");
     }

@@ -2,19 +2,19 @@ pub mod parse {
     //! A module which handles the parsing for java files
     extern crate colored;
 
+    use grammar::grammar::get_keywords;
+    use grammar::grammar::Token;
     use model::model::Class;
+    use model::model::Doc;
+    use model::model::Exception;
     use model::model::Method;
     use model::model::Param;
-    use model::model::Doc;
-    use model::model::Token;
     use model::model::ParseState;
-    use model::model::Exception;
-    use grammar::grammar::get_keywords;
 
     use colored::*;
     use std::fs::File;
-    use std::io::Read;
     use std::io::BufReader;
+    use std::io::Read;
     use std::path::Path;
 
     pub fn trim_paren(part: String) -> String {
@@ -23,8 +23,11 @@ pub mod parse {
     }
 
     pub fn handle_class(
-        mut class: Class, keys: Vec<String>, syms: Vec<String>, docs: Vec<String>) -> Class {
-
+        mut class: Class,
+        keys: Vec<String>,
+        syms: Vec<String>,
+        docs: Vec<String>,
+    ) -> Class {
         let except_buf: Vec<&str> = Vec::new();
         let impl_buf: Vec<&str> = Vec::new();
 
@@ -48,10 +51,7 @@ pub mod parse {
         method.ch_line_num(num.to_string());
 
         for (i, method_part) in parts.iter().enumerate() {
-            if method_part == "public"
-                || method_part == "private"
-                || method_part == "protected"
-            {
+            if method_part == "public" || method_part == "private" || method_part == "protected" {
                 method.ch_privacy(method_part.clone().to_string());
             } else if method_part == "void" {
                 method.ch_return_type("void".to_string());
@@ -281,18 +281,29 @@ pub mod parse {
     */
 
     macro_rules! is_keyword {
-        ($w:expr, $k:expr) => {
-            {
-                let mut found = false;
-                for key in $k {
-                    if key == $w {
-                        found = true
-                    }
+        ($w:expr, $k:expr) => {{
+            let mut found = false;
+            for key in $k {
+                if key == $w {
+                    found = true
                 }
-
-                found
             }
-        };
+
+            found
+        }};
+    }
+
+    fn push_token(depth: i32, curr_token: &mut String, tokens: &mut Vec<Token>) {
+        if depth <= 1 && curr_token.len() > 0 {
+            let keywords = get_keywords();
+            if is_keyword!(curr_token, keywords) {
+                tokens.push(Token::keyword(curr_token.to_string()));
+            } else {
+                tokens.push(Token::symbol(curr_token.to_string()));
+            }
+        }
+
+        curr_token = &mut String::new();
     }
 
     pub fn lex_contents(content: &str) -> Vec<Token> {
@@ -300,7 +311,6 @@ pub mod parse {
         let mut curr_token = String::new();
         let mut block_depth = 0;
         let mut blob = content.chars();
-        let mut join = false;
 
         loop {
             let ch_res = blob.next();
@@ -309,48 +319,28 @@ pub mod parse {
                 Some(ch) => {
                     match ch {
                         ' ' | '\t' | '\n' => {
-                            if block_depth <= 1 && curr_token.len() > 0 {
-                                let keywords = get_keywords();
-                                if is_keyword!(curr_token, keywords) {
-                                    tokens.push(Token::keyword(curr_token.to_string()));
-                                } else {
-                                    // If join flag is true current token is join with the current
-                                    // token
-                                    if !join {
-                                        tokens.push(Token::symbol(curr_token.to_string()));
-                                    } else {
-                                        curr_token.push_str(",");
-                                        join = false;
-                                    }
-                                }
-                                curr_token = String::new();
+                            push_token(block_depth, &mut curr_token, &mut tokens);
+                        }
+                        ',' => tokens.push(Token::join),
+                        ';' => {
+                            push_token(block_depth, &mut curr_token, &mut tokens);
+                        }
+                        '(' => {
+                            push_token(block_depth, &mut curr_token, &mut tokens);
+                            if block_depth <= 1 {
+                                tokens.push(Token::param_start);
                             }
                         }
-                        ',' => join = true,
-                        ';' => {
-                            if block_depth <= 1 && curr_token.len() > 0 {
-                                let keywords = get_keywords();
-                                if is_keyword!(curr_token, keywords) {
-                                    tokens.push(Token::keyword(curr_token.to_string()));
-                                    tokens.push(Token::expression_end(";".to_string()));
-                                } else {
-                                    tokens.push(Token::symbol(curr_token.to_string()));
-                                    tokens.push(Token::expression_end(";".to_string()));
-                                }
-                                curr_token = String::new();
+                        ')' => {
+                            push_token(block_depth, &mut curr_token, &mut tokens);
+                            if block_depth <= 1 {
+                                tokens.push(Token::param_end);
                             }
                         }
                         '{' => {
-                            if block_depth <= 1 && curr_token.len() > 0 {
-                                let keywords = get_keywords();
-                                if is_keyword!(curr_token, keywords) {
-                                    tokens.push(Token::keyword(curr_token.to_string()));
-                                    tokens.push(Token::expression_end("{".to_string()));
-                                } else {
-                                    tokens.push(Token::symbol(curr_token.to_string()));
-                                    tokens.push(Token::expression_end("{".to_string()));
-                                }
-                                curr_token = String::new();
+                            push_token(block_depth, &mut curr_token, &mut tokens);
+                            if block_depth <= 1 {
+                                tokens.push(Token::expression_end("{".to_string()));
                             }
 
                             block_depth += 1;
@@ -362,7 +352,7 @@ pub mod parse {
                             }
                         }
                     }
-                },
+                }
                 None => break,
             }
         }
@@ -381,15 +371,13 @@ pub mod parse {
 
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                Token::keyword(key) => {
-                    match key.as_ref() {
-                        "class" => parse_state.ch_class(true),
-                        "interface" => parse_state.ch_class(true),
-                        "package" => parse_state.ch_class(true),
-                        "import" => parse_state.ch_class(true),
-                        "enum" => parse_state.ch_class(true),
-                        _ => keywords.push(key.to_string()),
-                    }
+                Token::keyword(key) => match key.as_ref() {
+                    "class" => parse_state.ch_class(true),
+                    "interface" => parse_state.ch_class(true),
+                    "package" => parse_state.ch_class(true),
+                    "import" => parse_state.ch_class(true),
+                    "enum" => parse_state.ch_class(true),
+                    _ => keywords.push(key.to_string()),
                 },
                 Token::symbol(word) => symbols.push(word.to_string()),
                 Token::doc_keyword(word) => jdoc_keywords.push(word.to_string()),
@@ -398,7 +386,7 @@ pub mod parse {
                         class = handle_class(class, keywords, symbols, jdoc_keywords);
                     }
 
-                   // class.ch_class_name(tokens[i + 1].clone());
+                    // class.ch_class_name(tokens[i + 1].clone());
                 }
             }
         }

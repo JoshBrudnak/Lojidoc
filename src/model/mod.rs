@@ -9,14 +9,6 @@ pub mod model {
         pub var_type: String,
     }
 
-    #[derive(Debug)]
-    pub enum Token {
-        symbol(String),
-        keyword(String),
-        doc_keyword(String),
-        expression_end(String),
-    }
-
     /// Struct representing all the project data
     pub struct Project {
         pub classes: Vec<Class>,

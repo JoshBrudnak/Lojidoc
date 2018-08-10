@@ -7,6 +7,9 @@ pub mod grammar {
         symbol(String),
         keyword(String),
         doc_keyword(String),
+        join,
+        param_start,
+        param_end,
         expression_end(String),
     }
 
@@ -110,9 +113,15 @@ pub mod grammar {
 
         for token in token_stream {
             if access_mod_match!(token) {
-                method_prod.push(method_grammer::Access(token));
+                match token {
+                    Token::keyword(key) => method_prod.push(method_grammer::Access(key)),
+                    _ => println!("Parse error with access modifiers"),
+                }
             } else if modifier_match!(token) {
-                method_prod.push(method_grammer::Modifier(token));
+                match token {
+                    Token::keyword(key) => method_prod.push(method_grammer::Modifier(key)),
+                    _ => println!("Parse error with modifiers"),
+                }
             }
         }
 
