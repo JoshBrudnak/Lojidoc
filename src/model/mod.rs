@@ -38,12 +38,11 @@ pub mod model {
     pub struct Method {
         pub line_num: String,
         pub parameters: Vec<Param>,
-        pub is_static: bool,
+        pub modifiers: Vec<String>,
         pub name: String,
-        pub static_meth: bool,
         pub privacy: String,
         pub description: String,
-        pub exception: Exception,
+        pub exceptions: Vec<Exception>,
         pub return_type: String,
     }
 
@@ -62,7 +61,7 @@ pub mod model {
         pub author: String,
         pub class_name: String,
         pub description: String,
-        pub exception: Exception,
+        pub exceptions: Vec<Exception>,
         pub interfaces: Vec<String>,
         pub dependencies: Vec<String>,
         pub modifiers: Vec<String>,
@@ -123,7 +122,7 @@ pub mod model {
                 version: String::new(),
                 author: String::new(),
                 class_name: String::new(),
-                exception: Exception::new(),
+                exceptions: Vec::new(),
                 description: String::new(),
                 modifiers: Vec::new(),
                 variables: Vec::new(),
@@ -134,6 +133,7 @@ pub mod model {
             let mut new_methods = Vec::new();
             let mut new_vars = Vec::new();
             let mut new_mods = Vec::new();
+            let mut new_except = Vec::new();
 
             for i in 0..self.methods.len() {
                 new_methods.push(self.methods[i].clone());
@@ -143,6 +143,9 @@ pub mod model {
             }
             for i in 0..self.variables.len() {
                 new_mods.push(self.modifiers[i].clone());
+            }
+            for i in 0..self.exceptions.len() {
+                new_except.push(self.exceptions[i].clone());
             }
 
             Class {
@@ -158,7 +161,7 @@ pub mod model {
                 author: self.author.clone(),
                 class_name: self.class_name.clone(),
                 description: self.description.clone(),
-                exception: self.exception.clone(),
+                exceptions: new_except,
                 interfaces: self.interfaces.clone(),
                 modifiers: new_mods,
                 variables: new_vars,
@@ -230,8 +233,8 @@ pub mod model {
         pub fn add_modifier(&mut self, value: String) {
             self.modifiers.push(value);
         }
-        pub fn ch_exception(&mut self, value: Exception) {
-            self.exception = value;
+        pub fn add_exception(&mut self, value: Exception) {
+            self.exceptions.push(value);
         }
     }
 
@@ -306,11 +309,10 @@ pub mod model {
         pub fn new() -> Method {
             Method {
                 parameters: Vec::new(),
-                is_static: false,
-                exception: Exception::new(),
+                modifiers: Vec::new(),
+                exceptions: Vec::new(),
                 line_num: String::new(),
                 name: String::new(),
-                static_meth: false,
                 privacy: String::new(),
                 description: String::new(),
                 return_type: String::new(),
@@ -318,18 +320,25 @@ pub mod model {
         }
         pub fn clone(&mut self) -> Method {
             let mut new_params = Vec::new();
+            let mut new_excepts = Vec::new();
+            let mut new_modifiers = Vec::new();
 
             for i in 0..self.parameters.len() {
                 new_params.push(self.parameters[i].clone());
+            }
+            for i in 0..self.exceptions.len() {
+                new_excepts.push(self.exceptions[i].clone());
+            }
+            for i in 0..self.modifiers.len() {
+                new_modifiers.push(self.modifiers[i].clone());
             }
 
             Method {
                 line_num: self.line_num.clone(),
                 parameters: new_params,
-                is_static: self.is_static,
-                exception: self.exception.clone(),
+                modifiers: new_modifiers,
+                exceptions: new_excepts,
                 name: self.name.clone(),
-                static_meth: self.static_meth.clone(),
                 privacy: self.privacy.clone(),
                 description: self.description.clone(),
                 return_type: self.return_type.clone(),
@@ -350,8 +359,8 @@ pub mod model {
         pub fn ch_privacy(&mut self, value: String) {
             self.privacy = value;
         }
-        pub fn ch_is_static(&mut self, value: bool) {
-            self.is_static = value;
+        pub fn add_modifier(&mut self, value: String) {
+            self.modifiers.push(value);
         }
         pub fn ch_method_name(&mut self, value: String) {
             self.name = value;
@@ -359,8 +368,8 @@ pub mod model {
         pub fn ch_description(&mut self, value: String) {
             self.description = value;
         }
-        pub fn ch_exception(&mut self, value: Exception) {
-            self.exception = value;
+        pub fn add_exception(&mut self, value: Exception) {
+            self.exceptions.push(value);
         }
         pub fn add_param(&mut self, value: Param) {
             self.parameters.push(value);
@@ -374,6 +383,13 @@ pub mod model {
     }
 
     impl Param {
+        pub fn new() -> Param {
+            Param {
+                desc: String::new(),
+                name: String::new(),
+                var_type: String::new(),
+            }
+        }
         pub fn clone(&mut self) -> Param {
             let new_desc = self.desc.clone();
             let new_name = self.name.clone();
@@ -387,6 +403,12 @@ pub mod model {
         }
         pub fn ch_desc(&mut self, value: String) {
             self.desc = value;
+        }
+        pub fn ch_name(&mut self, value: String) {
+            self.name = value;
+        }
+        pub fn ch_type(&mut self, value: String) {
+            self.var_type = value;
         }
     }
 
@@ -426,20 +448,5 @@ pub mod model {
         pub fn add_interface(&mut self, value: Interface) {
             self.interfaces.push(value);
         }
-    }
-
-    /// Enum that is used to determine the line type for each line
-    #[derive(PartialEq, Debug)]
-    pub enum LineType {
-        IsPackage,
-        IsImport,
-        IsVariable,
-        IsClass,
-        IsInterface,
-        IsMethod,
-        IsComment,
-        IsStartdoc,
-        IsEnddoc,
-        IsOther,
     }
 }

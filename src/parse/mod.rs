@@ -53,6 +53,86 @@ pub mod parse {
         description
     }
 
+    fn get_object(gram_parts: Vec<Stream>) -> Class {
+        let mut class = Class::new();
+        let mut implement = false;
+        let mut exception = false;
+        let mut class_name = false;
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    if implement {
+                        class.add_interface(var);
+                    } else if exception {
+                        class.add_exception(Exception {
+                           desc: String::new(),
+                           exception_type: var
+                        });
+                    } else if class_name {
+                        class.ch_class_name(var);
+                        class_name = false;
+                    }
+                },
+                Stream::Object(var) => {
+                    if var == "interface" {
+                        class.ch_is_class(false);
+                    }
+                    class_name = true;
+                },
+                Stream::Access(key) => class.ch_access(key),
+                Stream::Modifier(key) => class.add_modifier(key),
+                Stream::Type(_) | Stream::Return_type(_) | Stream::Import | Stream::Package => println!("placeholder"),
+                Stream::Exception => {
+                    exception = true;
+                    implement = false;
+                },
+                Stream::Implement => {
+                    exception = false;
+                    implement = true;
+                },
+                Stream::Parent => println!("placeholder"),
+            }
+        }
+
+        class
+    }
+
+    fn get_method(gram_parts: Vec<Stream>) -> Method {
+        let mut method = Method::new();
+        let mut temp_param = Param::new();
+        let mut exception = false;
+        let mut method_name = false;
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    if exception {
+                        method.add_exception(Exception {
+                           desc: String::new(),
+                           exception_type: var
+                        });
+                    } else if method_name {
+                        method.ch_method_name(var);
+                        method_name = false;
+                    } else if method.name == "" {
+                        method.ch_return_type(var);
+                        method_name = true;
+                    }
+                },
+                Stream::Object(var) => {},
+                Stream::Access(key) => method.ch_privacy(key),
+                Stream::Modifier(key) => method.add_modifier(key),
+                Stream::Parent | Stream::Type(_) | Stream::Return_type(_) | Stream::Import | Stream::Package => println!("placeholder"),
+                Stream::Exception => {
+                    exception = true;
+                },
+            }
+        }
+
+        method
+    }
+
     fn match_params(
         method: &mut Method,
         jparams: &Vec<Param>,
@@ -284,6 +364,40 @@ pub mod parse {
                 Token::doc_keyword(word) => jdoc_keywords.push(word.to_string()),
                 Token::expression_end(end) => {
                     if parse_state.class {
+                        match end.as_ref() {
+                            ";" => {
+                                if !class.is_class {
+                                } else {
+                                    for i in 0..gram_parts.len() {
+                                        match gram_parts[i].clone() {
+                                            Stream::Type(var) => println!("placeholder"),
+                                            Stream::Variable(var) => println!("placeholder"),
+                                            Stream::Object(var) => println!("placeholder"),
+                                            Stream::Access(var) => println!("placeholder"),
+                                            Stream::Modifier(var) => println!("placeholder"),
+                                            Stream::Return_type(key) => println!("placeholder"),
+                                            Stream::Import => println!("placeholder"),
+                                            Stream::Package => println!("placeholder"),
+                                            Stream::Exception => println!("placeholder"),
+                                            Stream::Implement => println!("placeholder"),
+                                            Stream::Parent => println!("placeholder"),
+                                        }
+                                    }
+                                }
+                            },
+                            "{" => {
+                                if parse_state.interface || parse_state.class {
+                                    class = get_object(gram_parts);
+                                } else {
+                                    class.add_method(get_method(gram_parts));
+                                }
+
+                            }
+                            _ => println!("Other"),
+
+                        }
+
+                        parse_state = ParseState::new();
                         class = handle_class(
                             class,
                             keywords.clone(),
