@@ -8,40 +8,13 @@ pub mod parse {
     use model::model::Exception;
     use model::model::Method;
     use model::model::Param;
+    use model::model::Member;
 
     use colored::*;
     use std::fs::File;
     use std::io::BufReader;
     use std::io::Read;
     use std::path::Path;
-
-    pub fn trim_paren(part: String) -> String {
-        let no_paren: Vec<&str> = part.split(&[')', '{'][..]).collect();
-        no_paren.join("")
-    }
-
-    pub fn handle_class(
-        mut class: Class,
-        keys: Vec<String>,
-        syms: Vec<String>,
-        docs: Vec<String>,
-    ) -> Class {
-        let except_buf: Vec<&str> = Vec::new();
-        let impl_buf: Vec<&str> = Vec::new();
-
-        for (i, k) in keys.iter().enumerate() {
-            match k.as_ref() {
-                "public" | "protected" | "private" => class.ch_access(k.to_string()),
-                _ => class.add_modifier(k.to_string()),
-            }
-        }
-
-        if syms.len() > 0 {
-            class.ch_class_name(syms[0].to_string());
-        }
-
-        class.clone()
-    }
 
     fn doc_desc(parts: &Vec<String>) -> String {
         let mut description = String::new();
@@ -57,6 +30,7 @@ pub mod parse {
         let mut class = Class::new();
         let mut implement = false;
         let mut exception = false;
+        let mut parent = false;
         let mut class_name = false;
 
         for i in 0..gram_parts.len() {
@@ -72,6 +46,9 @@ pub mod parse {
                     } else if class_name {
                         class.ch_class_name(var);
                         class_name = false;
+                    } else if parent {
+                        class.ch_parent(var);
+                        parent = false;
                     }
                 },
                 Stream::Object(var) => {
@@ -82,16 +59,22 @@ pub mod parse {
                 },
                 Stream::Access(key) => class.ch_access(key),
                 Stream::Modifier(key) => class.add_modifier(key),
-                Stream::Type(_) | Stream::Return_type(_) | Stream::Import | Stream::Package => println!("placeholder"),
                 Stream::Exception => {
                     exception = true;
                     implement = false;
+                    parent = false;
                 },
                 Stream::Implement => {
                     exception = false;
                     implement = true;
+                    parent = false;
                 },
-                Stream::Parent => println!("placeholder"),
+                Stream::Parent => {
+                    exception = false;
+                    implement = false;
+                    parent = true;
+                },
+                _ => println!("Class pattern not supported"),
             }
         }
 
@@ -100,7 +83,6 @@ pub mod parse {
 
     fn get_method(gram_parts: Vec<Stream>) -> Method {
         let mut method = Method::new();
-        let mut temp_param = Param::new();
         let mut exception = false;
         let mut method_name = false;
 
@@ -120,17 +102,40 @@ pub mod parse {
                         method_name = true;
                     }
                 },
-                Stream::Object(var) => {},
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
-                Stream::Parent | Stream::Type(_) | Stream::Return_type(_) | Stream::Import | Stream::Package => println!("placeholder"),
-                Stream::Exception => {
-                    exception = true;
-                },
+                Stream::Exception => exception = true,
+                _ => println!("Method pattern not supported"),
             }
         }
 
         method
+    }
+
+    fn get_var(gram_parts: Vec<Stream>) -> Member {
+        let mut member = Member::new();
+        let mut member_name = false;
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    if var == "=" {
+                        return member;
+                    } else if member_name {
+                        member.ch_name(var);
+                        member_name = false;
+                    } else if member.name == "" {
+                        member.ch_type(var);
+                        member_name = true;
+                    }
+                },
+                Stream::Access(key) => member.ch_access(key),
+                Stream::Modifier(key) => member.add_modifier(key),
+                Stream::Import | Stream::Package | Stream::Exception | Stream::Parent | Stream::Implement | Stream::Return_type(_) | Stream::Object(_) | Stream::Type(_) => println!("Member variable pattern not supported"),
+            }
+        }
+
+        member
     }
 
     fn match_params(
@@ -294,7 +299,6 @@ pub mod parse {
         let mut jdoc = Doc::new();
         let mut jdoc_errs = String::new();
         let mut symbols: Vec<String> = Vec::new();
-        let mut keywords: Vec<String> = Vec::new();
         let mut jdoc_keywords: Vec<String> = Vec::new();
         let mut method: Method = Method::new();
         let mut gram_parts: Vec<Stream> = Vec::new();
@@ -302,12 +306,18 @@ pub mod parse {
         // Only allow parameters one layer deep in param definition
         let mut param_depth = 0;
 
-        for (i, token) in tokens.iter().enumerate() {
-            match token {
+        for token in tokens.clone() {
+            match token.clone() {
                 Token::keyword(key) => {
                     match key.as_ref() {
-                        "class" => gram_parts.push(Stream::Object("class".to_string())),
-                        "interface" => gram_parts.push(Stream::Object("interface".to_string())),
+                        "class" => {
+                            gram_parts.push(Stream::Object("class".to_string()));
+                            parse_state.ch_class(true);
+                        },
+                        "interface" => {
+                            gram_parts.push(Stream::Object("interface".to_string()));
+                            parse_state.ch_interface(true);
+                        },
                         "package" => gram_parts.push(Stream::Package),
                         "throws" => gram_parts.push(Stream::Exception),
                         "extends" => gram_parts.push(Stream::Parent),
@@ -315,9 +325,9 @@ pub mod parse {
                         "import" => gram_parts.push(Stream::Import),
                         "enum" => gram_parts.push(Stream::Object("enum".to_string())),
                         _ => {
-                            if access_mod_match!(token) {
+                            if access_mod_match!(token.clone()) {
                                 class.ch_access(key.to_string());
-                            } else if modifier_match!(token) {
+                            } else if modifier_match!(token.clone()) {
                                 class.add_modifier(key.to_string());
                             }
                         },
@@ -364,32 +374,35 @@ pub mod parse {
                 Token::doc_keyword(word) => jdoc_keywords.push(word.to_string()),
                 Token::expression_end(end) => {
                     if parse_state.class {
+                                let mut temp_gram = gram_parts.clone();
                         match end.as_ref() {
                             ";" => {
                                 if !class.is_class {
-                                } else {
-                                    for i in 0..gram_parts.len() {
-                                        match gram_parts[i].clone() {
-                                            Stream::Type(var) => println!("placeholder"),
-                                            Stream::Variable(var) => println!("placeholder"),
-                                            Stream::Object(var) => println!("placeholder"),
-                                            Stream::Access(var) => println!("placeholder"),
-                                            Stream::Modifier(var) => println!("placeholder"),
-                                            Stream::Return_type(key) => println!("placeholder"),
-                                            Stream::Import => println!("placeholder"),
-                                            Stream::Package => println!("placeholder"),
-                                            Stream::Exception => println!("placeholder"),
-                                            Stream::Implement => println!("placeholder"),
-                                            Stream::Parent => println!("placeholder"),
-                                        }
+                                } else if temp_gram.len() == 2 {
+                                    match temp_gram[0].clone() {
+                                        Stream::Import => {
+                                            match temp_gram[1].clone() {
+                                                Stream::Variable(key) => class.add_dependency(key),
+                                                _ => println!("Pattern not supported"),
+                                            }
+                                        },
+                                        Stream::Package => {
+                                            match temp_gram[1].clone() {
+                                                Stream::Variable(key) => class.ch_package_name(key),
+                                                _ => println!("Pattern not supported"),
+                                            }
+                                        },
+                                        _ => println!("Not import or package"),
                                     }
+                                } else {
+                                    class.add_variable(get_var(temp_gram));
                                 }
                             },
                             "{" => {
                                 if parse_state.interface || parse_state.class {
-                                    class = get_object(gram_parts);
+                                    class = get_object(temp_gram.clone());
                                 } else {
-                                    class.add_method(get_method(gram_parts));
+                                    class.add_method(get_method(temp_gram));
                                 }
 
                             }
@@ -398,15 +411,7 @@ pub mod parse {
                         }
 
                         parse_state = ParseState::new();
-                        class = handle_class(
-                            class,
-                            keywords.clone(),
-                            symbols.clone(),
-                            jdoc_keywords.clone(),
-                        );
                     }
-
-                    // class.ch_class_name(tokens[i + 1].clone());
                 }
             }
         }

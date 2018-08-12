@@ -117,11 +117,10 @@ pub fn gen_class_docs(class: Class) -> String {
 
     doc.push_str(format!("package: {}  \n\n", class.package_name.trim()).as_str());
 
-    if !class.exception.is_empty() {
+    for exception in class.exceptions {
         doc.push_str(
             format!(
-                "Throws {}: {}  \n\n",
-                class.exception.exception_type, class.exception.desc
+                "Throws {}: {}  \n\n", exception.exception_type, exception.desc
             ).as_str(),
         );
     }
@@ -198,17 +197,18 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
             doc.push_str(format!("### {}\n\n", member.name).as_str());
         }
 
-        if member.is_static {
-            doc.push_str("+ Static  \n");
+        for mem in member.modifiers {
+            doc.push_str("+ Modifier: ");
+            doc.push_str(format!("{}  \n", mem).as_str())
         }
         doc.push_str(format!("+ privacy: {}  \n", member.privacy.trim()).as_str());
         doc.push_str(format!("+ description: {}  \n", member.description).as_str());
 
-        if !member.exception.is_empty() {
+        for exception in member.exceptions {
             doc.push_str(
                 format!(
                     "+ Throws {}: {}  \n",
-                    member.exception.exception_type, member.exception.desc
+                    exception.exception_type, exception.desc
                 ).as_str(),
             );
         }
