@@ -86,15 +86,6 @@ pub mod model {
         pub methods: Vec<Method>,
     }
 
-    /// Struct that represents the parsing state
-    pub struct ParseState {
-        pub class: bool,
-        pub method: bool,
-        pub doc: bool,
-        pub comment: bool,
-        pub doc_ready: bool,
-    }
-
     impl Exception {
         pub fn new() -> Exception {
             Exception {
@@ -379,33 +370,6 @@ pub mod model {
         }
         pub fn ch_return_type(&mut self, value: String) {
             self.return_type = value;
-        }
-    }
-
-    impl ParseState {
-        pub fn new() -> ParseState {
-            ParseState {
-                class: false,
-                method: false,
-                doc: false,
-                comment: false,
-                doc_ready: false,
-            }
-        }
-        pub fn ch_class(&mut self, value: bool) {
-            self.class = value;
-        }
-        pub fn ch_method(&mut self, value: bool) {
-            self.method = value;
-        }
-        pub fn ch_doc(&mut self, value: bool) {
-            self.doc = value;
-        }
-        pub fn ch_comment(&mut self, value: bool) {
-            self.comment = value;
-        }
-        pub fn ch_doc_ready(&mut self, value: bool) {
-            self.doc_ready = value;
         }
     }
 

@@ -2,7 +2,7 @@
 pub mod grammar {
     //! Module that contains grammar
 
-    #[derive(Debug)]
+    #[derive(Clone, Debug)]
     pub enum Token {
         symbol(String),
         keyword(String),
@@ -77,47 +77,72 @@ pub mod grammar {
         ]
     }
 
-    pub enum method_grammer {
+    pub enum Stream {
+        Import,
+        Package,
+        Exception,
+        Implement,
+        Parent,
+        Object(String),
         Access(String),
         Modifier(String),
-        Parameter(String),
+        Type(String),
+        Variable(String),
         Return_type(String),
     }
 
-    macro_rules! access_mod_match {
-        ($e:expr) => {
-            match $e {
-                Token::keyword(value) => match value.as_ref() {
-                    "public" | "protected" | "private" => true,
-                    _ => false,
-                },
-                _ => false,
-            }
-        };
+    /// Struct that represents the parsing state
+    pub struct ParseState {
+        pub class: bool,
+        pub interface: bool,
+        pub enum_ob: bool,
+        pub doc: bool,
+        pub comment: bool,
+        pub doc_ready: bool,
     }
 
-    macro_rules! modifier_match {
-        ($e:expr) => {
-            match $e {
-                Token::keyword(value) => match value.as_ref() {
-                    "static" | "final" | "abstract" | "synchronized" | "volatile" => true,
-                    _ => false,
-                },
-                _ => false,
+    impl ParseState {
+        pub fn new() -> ParseState {
+            ParseState {
+                class: false,
+                interface: false,
+                enum_ob: false,
+                doc: false,
+                comment: false,
+                doc_ready: false,
             }
-        };
+        }
+        pub fn ch_class(&mut self, value: bool) {
+            self.class = value;
+        }
+        pub fn ch_interface(&mut self, value: bool) {
+            self.interface = value;
+        }
+        pub fn ch_enum(&mut self, value: bool) {
+            self.enum_ob = value;
+        }
+        pub fn ch_doc(&mut self, value: bool) {
+            self.doc = value;
+        }
+        pub fn ch_comment(&mut self, value: bool) {
+            self.comment = value;
+        }
+        pub fn ch_doc_ready(&mut self, value: bool) {
+            self.doc_ready = value;
+        }
     }
 
+    /*
     pub fn match_method(token_stream: Vec<Token>) -> bool {
-        let method_prod: Vec<method_grammer> = Vec::new();
+        let mut method_prod: Vec<method_grammer> = Vec::new();
 
-        for token in token_stream {
-            if access_mod_match!(token) {
+        for token in token_stream.clone() {
+            if access_mod_match!(token.clone()) {
                 match token {
                     Token::keyword(key) => method_prod.push(method_grammer::Access(key)),
                     _ => println!("Parse error with access modifiers"),
                 }
-            } else if modifier_match!(token) {
+            } else if modifier_match!(token.clone()) {
                 match token {
                     Token::keyword(key) => method_prod.push(method_grammer::Modifier(key)),
                     _ => println!("Parse error with modifiers"),
@@ -132,4 +157,5 @@ pub mod grammar {
         access_mod_match!(Token::keyword("public".to_string()));
         modifier_match!(Token::keyword("public".to_string()));
     }
+    */
 }
