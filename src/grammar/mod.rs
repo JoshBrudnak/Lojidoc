@@ -77,7 +77,7 @@ pub mod grammar {
         ]
     }
 
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     pub enum Stream {
         Import,
         Package,

@@ -157,7 +157,7 @@ pub mod parse {
                     implement = false;
                     parent = true;
                 },
-                _ => println!("Class pattern not supported"),
+                _ => println!("Class pattern not supported {:?}", gram_parts[i]),
             }
         }
 
@@ -312,7 +312,9 @@ pub mod parse {
                     }
                     ',' => tokens.push(Token::join),
                     ';' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
+                        if block_depth <= 1 {
+                            tokens.push(Token::expression_end(";".to_string()));
+                        }
                         curr_token = String::new();
                     }
                     '(' => {
@@ -330,7 +332,6 @@ pub mod parse {
                         curr_token = String::new();
                     }
                     '{' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
                         if block_depth <= 1 {
                             tokens.push(Token::expression_end("{".to_string()));
                         }
@@ -397,12 +398,16 @@ pub mod parse {
                 Token::keyword(key) => {
                     match key.as_ref() {
                         "class" => {
-                            gram_parts.push(Stream::Object("class".to_string()));
-                            parse_state.ch_class(true);
+                            if !doc && !comment {
+                                gram_parts.push(Stream::Object("class".to_string()));
+                                parse_state.ch_class(true);
+                            }
                         },
                         "interface" => {
-                            gram_parts.push(Stream::Object("interface".to_string()));
-                            parse_state.ch_interface(true);
+                            if !doc && !comment {
+                                gram_parts.push(Stream::Object("interface".to_string()));
+                                parse_state.ch_interface(true);
+                            }
                         },
                         "package" => gram_parts.push(Stream::Package),
                         "throws" => gram_parts.push(Stream::Exception),
@@ -435,10 +440,12 @@ pub mod parse {
                             if doc {
                                 if is_keyword!(word, get_jdoc_keywords()) {
                                     doc_tokens.push(Jdoc_token::keyword(word.clone()));
+                                } else {
+                                    doc_tokens.push(Jdoc_token::symbol(word.clone()));
                                 }
-                                doc_tokens.push(Jdoc_token::symbol(word.clone()));
+                            } else {
+                                symbols.push(word.to_string())
                             }
-                            symbols.push(word.to_string())
                         }
                     }
                 },
@@ -481,6 +488,7 @@ pub mod parse {
                 }
                 Token::doc_keyword(word) => jdoc_keywords.push(word.to_string()),
                 Token::expression_end(end) => {
+                    println!("Expression end {}", end.as_str());
                     if parse_state.class {
                                 let mut temp_gram = gram_parts.clone();
                         match end.as_ref() {
@@ -519,6 +527,7 @@ pub mod parse {
                         }
 
                         parse_state = ParseState::new();
+                        println!("{:?}", gram_parts);
                         gram_parts.clear();
                     }
                 }
@@ -535,7 +544,6 @@ pub mod parse {
         let res = buf.read_to_string(&mut contents);
         if res.is_ok() {
             let tokens = lex_contents(&contents);
-            println!("{:?}", tokens);
             construct_ast(tokens)
         } else {
             println!("Unable to read file");
