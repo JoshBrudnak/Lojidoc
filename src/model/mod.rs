@@ -38,7 +38,7 @@ pub mod model {
         pub description: String,
         pub author: String,
         pub version: String,
-        pub exception: Exception,
+        pub exceptions: Vec<Exception>,
         pub deprecated: String,
         pub return_desc: String,
     }
@@ -469,7 +469,7 @@ pub mod model {
                 return_desc: String::new(),
                 author: String::new(),
                 version: String::new(),
-                exception: Exception::new(),
+                exceptions: Vec::new(),
                 deprecated: String::new(),
             }
         }
@@ -479,7 +479,7 @@ pub mod model {
             self.return_desc = String::new();
             self.author = String::new();
             self.version = String::new();
-            self.exception = Exception::new();
+            self.exceptions = Vec::new();
             self.deprecated = String::new();
         }
     }

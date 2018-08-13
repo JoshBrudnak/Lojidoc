@@ -89,7 +89,38 @@ pub mod grammar {
         Modifier(String),
         Type(String),
         Variable(String),
+        Word(String),
+        Doc(String),
         Return_type(String),
+    }
+
+    #[derive(Clone)]
+    pub enum Jdoc_token {
+        keyword(String),
+        symbol(String),
+    }
+
+    #[derive(Clone)]
+    pub enum Jdoc_state {
+        desc,
+        jdoc_return,
+        param,
+        author,
+        code,
+        deprecated,
+        docRoot,
+        exception,
+        inheritDoc,
+        link,
+        linkplain,
+        literal,
+        see,
+        throws,
+        since,
+        serialData,
+        serialField,
+        value,
+        version,
     }
 
     /// Struct that represents the parsing state

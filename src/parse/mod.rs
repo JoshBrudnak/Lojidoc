@@ -26,7 +26,90 @@ pub mod parse {
         description
     }
 
-    fn get_object(gram_parts: Vec<Stream>) -> Class {
+    fn get_doc(tokens: &Vec<Jdoc_token>) -> Doc {
+        let mut return_str = String::from("");
+        let mut desc = String::from("");
+        let mut parameters: Vec<Param> = Vec::new();
+        let mut author = String::new();
+        let mut version = String::new();
+        let mut deprecated = String::new();
+        let mut exceptions: Vec<Exception> = Vec::new();
+        let mut state = Jdoc_state::desc;
+
+        let mut word_buf = String::new();
+
+        for i in 0..tokens.len() {
+            match tokens[i].clone() {
+                Jdoc_token::keyword(key) => {
+                    let new_desc = word_buf.clone();
+                    if i != 0 {
+                        match state {
+                            Jdoc_state::jdoc_return => return_str = new_desc,
+                            Jdoc_state::param => {
+                                let word_parts: Vec<&str> = new_desc.split(" ").collect();
+
+                                parameters.push(Param {
+                                    var_type: String::new(),
+                                    name: word_parts[0].to_string(),
+                                    desc: word_parts[1..].join(""),
+                                });
+                            }
+                            Jdoc_state::author => author = new_desc,
+                            Jdoc_state::deprecated => deprecated = new_desc,
+                            Jdoc_state::exception => {
+                                let word_parts: Vec<&str> = new_desc.split(" ").collect();
+
+                                exceptions.push(Exception {
+                                    exception_type: word_parts[0].to_string(),
+                                    desc: word_parts[1..].join(""),
+                                });
+                            },
+                            Jdoc_state::version => version = new_desc,
+                            Jdoc_state::desc => desc = new_desc,
+                            _ => println!("Code javadoc field not supported"),
+                        }
+
+                        word_buf.clear();
+                    }
+
+                    match key.as_ref() {
+                        "@return" => state = Jdoc_state::jdoc_return,
+                        "@param" => state = Jdoc_state::param,
+                        "@author" => state = Jdoc_state::author,
+                        "@code" => state = Jdoc_state::code,
+                        "@deprecated" => state = Jdoc_state::deprecated,
+                        "@docRoot" => state = Jdoc_state::docRoot,
+                        "@exception" => state = Jdoc_state::exception,
+                        "@inheritDoc" => state = Jdoc_state::inheritDoc,
+                        "@link" => state = Jdoc_state::link,
+                        "@linkplain" => state = Jdoc_state::linkplain,
+                        "@literal" => state = Jdoc_state::literal,
+                        "@see" => state = Jdoc_state::see,
+                        "@throws" => state = Jdoc_state::exception,
+                        "@since" => state = Jdoc_state::since,
+                        "@serialData" => state = Jdoc_state::serialData,
+                        "@serialField" => state = Jdoc_state::serialField,
+                        "@value" => state = Jdoc_state::value,
+                        "@version" => state = Jdoc_state::version,
+                        _ => println!("Unsupported javadoc keyword used"),
+                    }
+                },
+                Jdoc_token::symbol(key) => word_buf.push_str(key.as_str()),
+            }
+        }
+
+        Doc {
+            params: parameters,
+            description: desc,
+            return_desc: return_str,
+            author: author,
+            version: version,
+            exceptions: exceptions,
+            deprecated: deprecated,
+        }
+    }
+
+    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc) -> Class {
         let mut class = Class::new();
         let mut implement = false;
         let mut exception = false;
@@ -81,7 +164,7 @@ pub mod parse {
         class
     }
 
-    fn get_method(gram_parts: Vec<Stream>) -> Method {
+    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc) -> Method {
         let mut method = Method::new();
         let mut exception = false;
         let mut method_name = false;
@@ -91,7 +174,7 @@ pub mod parse {
                 Stream::Variable(var) => {
                     if exception {
                         method.add_exception(Exception {
-                           desc: String::new(),
+                           desc: java_doc.exceptions[0].clone().desc,
                            exception_type: var
                         });
                     } else if method_name {
@@ -131,7 +214,7 @@ pub mod parse {
                 },
                 Stream::Access(key) => member.ch_access(key),
                 Stream::Modifier(key) => member.add_modifier(key),
-                Stream::Import | Stream::Package | Stream::Exception | Stream::Parent | Stream::Implement | Stream::Return_type(_) | Stream::Object(_) | Stream::Type(_) => println!("Member variable pattern not supported"),
+                _ => println!("Member variable pattern not supported"),
             }
         }
 
@@ -296,10 +379,13 @@ pub mod parse {
     pub fn construct_ast(tokens: Vec<Token>) -> Class {
         let mut class = Class::new();
         let mut parse_state = ParseState::new();
+        let mut doc = false;
+        let mut comment = false;
         let mut jdoc = Doc::new();
         let mut jdoc_errs = String::new();
         let mut symbols: Vec<String> = Vec::new();
         let mut jdoc_keywords: Vec<String> = Vec::new();
+        let mut doc_tokens: Vec<Jdoc_token> = Vec::new();
         let mut method: Method = Method::new();
         let mut gram_parts: Vec<Stream> = Vec::new();
 
@@ -333,7 +419,29 @@ pub mod parse {
                         },
                     }
                 }
-                Token::symbol(word) => symbols.push(word.to_string()),
+                Token::symbol(word) => {
+                    match word.as_ref() {
+                        "/**" => doc = true,
+                        "*/" => {
+                            if doc {
+                                jdoc = get_doc(&doc_tokens);
+                                doc = false;
+                            }
+                            comment = false;
+                        },
+                        "//" => comment = true,
+                        "/*" => comment = true,
+                        _ => {
+                            if doc {
+                                if is_keyword!(word, get_jdoc_keywords()) {
+                                    doc_tokens.push(Jdoc_token::keyword(word.clone()));
+                                }
+                                doc_tokens.push(Jdoc_token::symbol(word.clone()));
+                            }
+                            symbols.push(word.to_string())
+                        }
+                    }
+                },
                 Token::join => {
                     if symbols.len() > 1 && param_depth == 1 {
                         let temp_sym = symbols.clone();
@@ -400,9 +508,9 @@ pub mod parse {
                             },
                             "{" => {
                                 if parse_state.interface || parse_state.class {
-                                    class = get_object(temp_gram.clone());
+                                    class = get_object(temp_gram.clone(), &jdoc);
                                 } else {
-                                    class.add_method(get_method(temp_gram));
+                                    class.add_method(get_method(temp_gram, &jdoc));
                                 }
 
                             }
@@ -411,6 +519,7 @@ pub mod parse {
                         }
 
                         parse_state = ParseState::new();
+                        gram_parts.clear();
                     }
                 }
             }
