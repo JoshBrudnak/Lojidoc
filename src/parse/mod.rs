@@ -16,17 +16,7 @@ pub mod parse {
     use std::io::Read;
     use std::path::Path;
 
-    fn doc_desc(parts: &Vec<String>) -> String {
-        let mut description = String::new();
-
-        for i in 0..parts.len() {
-            description.push_str(format!("{} ", parts[i].as_str()).as_str());
-        }
-
-        description
-    }
-
-    fn get_doc(tokens: &Vec<Jdoc_token>) -> Doc {
+    fn get_doc(tokens: &Vec<JdocToken>) -> Doc {
         let mut return_str = String::from("");
         let mut desc = String::from("");
         let mut parameters: Vec<Param> = Vec::new();
@@ -34,18 +24,18 @@ pub mod parse {
         let mut version = String::new();
         let mut deprecated = String::new();
         let mut exceptions: Vec<Exception> = Vec::new();
-        let mut state = Jdoc_state::desc;
+        let mut state = JdocState::Desc;
 
         let mut word_buf = String::new();
 
         for i in 0..tokens.len() {
             match tokens[i].clone() {
-                Jdoc_token::keyword(key) => {
+                JdocToken::Keyword(key) => {
                     let new_desc = word_buf.clone();
                     if i != 0 {
                         match state {
-                            Jdoc_state::jdoc_return => return_str = new_desc,
-                            Jdoc_state::param => {
+                            JdocState::Jdoc_return => return_str = new_desc,
+                            JdocState::Param => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
                                 parameters.push(Param {
@@ -54,9 +44,9 @@ pub mod parse {
                                     desc: word_parts[1..].join(""),
                                 });
                             }
-                            Jdoc_state::author => author = new_desc,
-                            Jdoc_state::deprecated => deprecated = new_desc,
-                            Jdoc_state::exception => {
+                            JdocState::Author => author = new_desc,
+                            JdocState::Deprecated => deprecated = new_desc,
+                            JdocState::Exception => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
                                 exceptions.push(Exception {
@@ -64,8 +54,8 @@ pub mod parse {
                                     desc: word_parts[1..].join(""),
                                 });
                             }
-                            Jdoc_state::version => version = new_desc,
-                            Jdoc_state::desc => desc = new_desc,
+                            JdocState::Version => version = new_desc,
+                            JdocState::Desc => desc = new_desc,
                             _ => println!("Code javadoc field not supported"),
                         }
 
@@ -73,28 +63,28 @@ pub mod parse {
                     }
 
                     match key.as_ref() {
-                        "@return" => state = Jdoc_state::jdoc_return,
-                        "@param" => state = Jdoc_state::param,
-                        "@author" => state = Jdoc_state::author,
-                        "@code" => state = Jdoc_state::code,
-                        "@deprecated" => state = Jdoc_state::deprecated,
-                        "@docRoot" => state = Jdoc_state::docRoot,
-                        "@exception" => state = Jdoc_state::exception,
-                        "@inheritDoc" => state = Jdoc_state::inheritDoc,
-                        "@link" => state = Jdoc_state::link,
-                        "@linkplain" => state = Jdoc_state::linkplain,
-                        "@literal" => state = Jdoc_state::literal,
-                        "@see" => state = Jdoc_state::see,
-                        "@throws" => state = Jdoc_state::exception,
-                        "@since" => state = Jdoc_state::since,
-                        "@serialData" => state = Jdoc_state::serialData,
-                        "@serialField" => state = Jdoc_state::serialField,
-                        "@value" => state = Jdoc_state::value,
-                        "@version" => state = Jdoc_state::version,
+                        "@return" => state = JdocState::Jdoc_return,
+                        "@param" => state = JdocState::Param,
+                        "@author" => state = JdocState::Author,
+                        "@code" => state = JdocState::Code,
+                        "@deprecated" => state = JdocState::Deprecated,
+                        "@docRoot" => state = JdocState::DocRoot,
+                        "@exception" => state = JdocState::Exception,
+                        "@inheritDoc" => state = JdocState::InheritDoc,
+                        "@link" => state = JdocState::Link,
+                        "@linkplain" => state = JdocState::Linkplain,
+                        "@literal" => state = JdocState::Literal,
+                        "@see" => state = JdocState::See,
+                        "@throws" => state = JdocState::Exception,
+                        "@since" => state = JdocState::Since,
+                        "@serialData" => state = JdocState::SerialData,
+                        "@serialField" => state = JdocState::SerialField,
+                        "@value" => state = JdocState::Value,
+                        "@version" => state = JdocState::Version,
                         _ => println!("Unsupported javadoc keyword used"),
                     }
                 }
-                Jdoc_token::symbol(key) => word_buf.push_str(key.as_str()),
+                JdocToken::Symbol(key) => word_buf.push_str(key.as_str()),
             }
         }
 
@@ -109,7 +99,7 @@ pub mod parse {
         }
     }
 
-    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc) -> Class {
+    fn get_object(gram_parts: Vec<Stream>, _java_doc: &Doc) -> Class {
         let mut class = Class::new();
         let mut implement = false;
         let mut exception = false;
@@ -164,7 +154,7 @@ pub mod parse {
         class
     }
 
-    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc) -> Method {
+    fn get_method(gram_parts: Vec<Stream>, _java_doc: &Doc) -> Method {
         let mut method = Method::new();
         let mut exception = false;
         let mut method_name = false;
@@ -174,7 +164,7 @@ pub mod parse {
                 Stream::Variable(var) => {
                     if exception {
                         method.add_exception(Exception {
-                            desc: java_doc.exceptions[0].clone().desc,
+                            desc: _java_doc.exceptions[0].clone().desc,
                             exception_type: var,
                         });
                     } else if method_name {
@@ -288,9 +278,9 @@ pub mod parse {
         if depth <= 1 && curr_token.len() > 0 {
             let keywords = get_keywords();
             if is_keyword!(curr_token, keywords) {
-                tokens.push(Token::keyword(curr_token.to_string()));
+                tokens.push(Token::Keyword(curr_token.to_string()));
             } else {
-                tokens.push(Token::symbol(curr_token.to_string()));
+                tokens.push(Token::Symbol(curr_token.to_string()));
             }
         }
     }
@@ -313,35 +303,35 @@ pub mod parse {
                     ',' => {
                         push_token(block_depth, &curr_token, &mut tokens);
                         if block_depth <= 1 {
-                            tokens.push(Token::join)
+                            tokens.push(Token::Join)
                         }
                         curr_token = String::new();
                     }
                     ';' => {
                         push_token(block_depth, &curr_token, &mut tokens);
                         if block_depth <= 1 {
-                            tokens.push(Token::expression_end(";".to_string()));
+                            tokens.push(Token::Expression_end(";".to_string()));
                         }
                         curr_token = String::new();
                     }
                     '(' => {
                         push_token(block_depth, &curr_token, &mut tokens);
                         if block_depth <= 1 {
-                            tokens.push(Token::param_start);
+                            tokens.push(Token::Param_start);
                         }
                         curr_token = String::new();
                     }
                     ')' => {
                         push_token(block_depth, &curr_token, &mut tokens);
                         if block_depth <= 1 {
-                            tokens.push(Token::param_end);
+                            tokens.push(Token::Param_end);
                         }
                         curr_token = String::new();
                     }
                     '{' => {
                         push_token(block_depth, &curr_token, &mut tokens);
                         if block_depth <= 1 {
-                            tokens.push(Token::expression_end("{".to_string()));
+                            tokens.push(Token::Expression_end("{".to_string()));
                         }
                         curr_token = String::new();
 
@@ -366,7 +356,7 @@ pub mod parse {
     macro_rules! access_mod_match {
         ($e:expr) => {
             match $e {
-                Token::keyword(value) => match value.as_ref() {
+                Token::Keyword(value) => match value.as_ref() {
                     "public" | "protected" | "private" => true,
                     _ => false,
                 },
@@ -378,7 +368,7 @@ pub mod parse {
     macro_rules! modifier_match {
         ($e:expr) => {
             match $e {
-                Token::keyword(value) => match value.as_ref() {
+                Token::Keyword(value) => match value.as_ref() {
                     "static" | "final" | "abstract" | "synchronized" | "volatile" => true,
                     _ => false,
                 },
@@ -396,13 +386,13 @@ pub mod parse {
         let mut jdoc_errs = String::new();
         let mut symbols: Vec<String> = Vec::new();
         let mut jdoc_keywords: Vec<String> = Vec::new();
-        let mut doc_tokens: Vec<Jdoc_token> = Vec::new();
+        let mut doc_tokens: Vec<JdocToken> = Vec::new();
         let mut method: Method = Method::new();
         let mut gram_parts: Vec<Stream> = Vec::new();
 
         for token in tokens.clone() {
             match token.clone() {
-                Token::keyword(key) => match key.as_ref() {
+                Token::Keyword(key) => match key.as_ref() {
                     "class" => {
                         if !doc && !comment {
                             gram_parts.push(Stream::Object("class".to_string()));
@@ -432,7 +422,7 @@ pub mod parse {
                         }
                     }
                 },
-                Token::symbol(word) => match word.as_ref() {
+                Token::Symbol(word) => match word.as_ref() {
                     "/**" => doc = true,
                     "*/" => {
                         if doc {
@@ -446,16 +436,16 @@ pub mod parse {
                     _ => {
                         if doc {
                             if is_keyword!(word, get_jdoc_keywords()) {
-                                doc_tokens.push(Jdoc_token::keyword(word.clone()));
+                                doc_tokens.push(JdocToken::Keyword(word.clone()));
                             } else {
-                                doc_tokens.push(Jdoc_token::symbol(word.clone()));
+                                doc_tokens.push(JdocToken::Symbol(word.clone()));
                             }
                         } else {
                             symbols.push(word.to_string())
                         }
                     }
                 },
-                Token::join => {
+                Token::Join => {
                     if symbols.len() > 1 {
                         let temp_sym = symbols.clone();
                         gram_parts.push(Stream::Type(temp_sym[0].clone()));
@@ -464,7 +454,7 @@ pub mod parse {
 
                     symbols.clear();
                 }
-                Token::param_start => {
+                Token::Param_start => {
                     let temp_sym = symbols.clone();
                     if symbols.len() == 1 {
                         gram_parts.push(Stream::Type(temp_sym[0].clone()));
@@ -475,7 +465,7 @@ pub mod parse {
 
                     symbols.clear();
                 }
-                Token::param_end => {
+                Token::Param_end => {
                     let temp_sym = symbols.clone();
                     if symbols.len() == 1 {
                         method.ch_method_name(temp_sym[0].clone());
@@ -485,8 +475,8 @@ pub mod parse {
                     }
                     symbols.clear();
                 }
-                Token::doc_keyword(word) => jdoc_keywords.push(word.to_string()),
-                Token::expression_end(end) => {
+                Token::Doc_keyword(word) => jdoc_keywords.push(word.to_string()),
+                Token::Expression_end(end) => {
                     println!("Expression end {}", end.as_str());
                     if parse_state.class {
                         let mut temp_gram = gram_parts.clone();

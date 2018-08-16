@@ -4,13 +4,13 @@ pub mod grammar {
 
     #[derive(Clone, Debug)]
     pub enum Token {
-        symbol(String),
-        keyword(String),
-        doc_keyword(String),
-        join,
-        param_start,
-        param_end,
-        expression_end(String),
+        Symbol(String),
+        Keyword(String),
+        Doc_keyword(String),
+        Join,
+        Param_start,
+        Param_end,
+        Expression_end(String),
     }
 
     /// Gets a full list of all the keywords for the lexer
@@ -95,32 +95,32 @@ pub mod grammar {
     }
 
     #[derive(Clone)]
-    pub enum Jdoc_token {
-        keyword(String),
-        symbol(String),
+    pub enum JdocToken {
+        Keyword(String),
+        Symbol(String),
     }
 
     #[derive(Clone)]
-    pub enum Jdoc_state {
-        desc,
-        jdoc_return,
-        param,
-        author,
-        code,
-        deprecated,
-        docRoot,
-        exception,
-        inheritDoc,
-        link,
-        linkplain,
-        literal,
-        see,
-        throws,
-        since,
-        serialData,
-        serialField,
-        value,
-        version,
+    pub enum JdocState {
+        Desc,
+        Jdoc_return,
+        Param,
+        Author,
+        Code,
+        Deprecated,
+        DocRoot,
+        Exception,
+        InheritDoc,
+        Link,
+        Linkplain,
+        Literal,
+        See,
+        Throws,
+        Since,
+        SerialData,
+        SerialField,
+        Value,
+        Version,
     }
 
     /// Struct that represents the parsing state
@@ -163,31 +163,4 @@ pub mod grammar {
             self.doc_ready = value;
         }
     }
-
-    /*
-    pub fn match_method(token_stream: Vec<Token>) -> bool {
-        let mut method_prod: Vec<method_grammer> = Vec::new();
-
-        for token in token_stream.clone() {
-            if access_mod_match!(token.clone()) {
-                match token {
-                    Token::keyword(key) => method_prod.push(method_grammer::Access(key)),
-                    _ => println!("Parse error with access modifiers"),
-                }
-            } else if modifier_match!(token.clone()) {
-                match token {
-                    Token::keyword(key) => method_prod.push(method_grammer::Modifier(key)),
-                    _ => println!("Parse error with modifiers"),
-                }
-            }
-        }
-
-        true
-    }
-
-    pub fn temp_fn() {
-        access_mod_match!(Token::keyword("public".to_string()));
-        modifier_match!(Token::keyword("public".to_string()));
-    }
-    */
 }
