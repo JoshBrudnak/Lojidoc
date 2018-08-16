@@ -120,7 +120,8 @@ pub fn gen_class_docs(class: Class) -> String {
     for exception in class.exceptions {
         doc.push_str(
             format!(
-                "Throws {}: {}  \n\n", exception.exception_type, exception.desc
+                "Throws {}: {}  \n\n",
+                exception.exception_type, exception.desc
             ).as_str(),
         );
     }
