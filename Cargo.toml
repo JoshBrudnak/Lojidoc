@@ -1,6 +1,6 @@
 [package]
 name = "lojidoc"
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0"
 description = "A tool for generating markown documentation for java projects."
 keywords = ["documentation", "java", "javadoc"]
@@ -14,10 +14,9 @@ exclude = [
 ]
 
 [badges]
-travis-ci = { repository = "JoshBrudnak/Javadoc-To-Markdown" }
+travis-ci = { repository = "JoshBrudnak/Lojidoc" }
 
 [dependencies]
-regex = "0.1.41"
 threadpool = "1.7.1"
 lazy_static = "1.0.1"
 clap = "2.32"

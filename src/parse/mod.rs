@@ -211,6 +211,8 @@ pub mod parse {
         member
     }
 
+    /*
+
     fn match_params(
         method: &mut Method,
         jparams: &Vec<Param>,
@@ -260,6 +262,7 @@ pub mod parse {
 
         new_param
     }
+    */
 
     macro_rules! is_keyword {
         ($w:expr, $k:expr) => {{
@@ -274,10 +277,14 @@ pub mod parse {
         }};
     }
 
-    fn push_token(depth: i32, curr_token: &String, tokens: &mut Vec<Token>) {
-        if depth <= 1 && curr_token.len() > 0 {
+    fn push_token(curr_token: &String, tokens: &mut Vec<Token>) {
+        if curr_token != "" {
             let keywords = get_keywords();
+            let jdoc_keywords = get_jdoc_keywords();
             if is_keyword!(curr_token, keywords) {
+            println!("{}", curr_token);
+                tokens.push(Token::Keyword(curr_token.to_string()));
+            } else if is_keyword!(curr_token, jdoc_keywords) {
                 tokens.push(Token::Keyword(curr_token.to_string()));
             } else {
                 tokens.push(Token::Symbol(curr_token.to_string()));
@@ -285,7 +292,7 @@ pub mod parse {
         }
     }
 
-    pub fn lex_contents(content: &str) -> Vec<Token> {
+    pub fn lex_contents(content: &String) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut curr_token = String::new();
         let mut block_depth = 0;
@@ -297,47 +304,55 @@ pub mod parse {
             match ch_res {
                 Some(ch) => match ch {
                     ' ' | '\t' | '\n' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                        }
                         curr_token = String::new();
-                    }
+                    },
                     ',' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
-                        if block_depth <= 1 {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Join)
                         }
                         curr_token = String::new();
-                    }
+                    },
                     ';' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
-                        if block_depth <= 1 {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Expression_end(";".to_string()));
                         }
                         curr_token = String::new();
-                    }
+                    },
                     '(' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
-                        if block_depth <= 1 {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Param_start);
                         }
                         curr_token = String::new();
-                    }
+                    },
                     ')' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
-                        if block_depth <= 1 {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Param_end);
                         }
                         curr_token = String::new();
-                    }
+                    },
                     '{' => {
-                        push_token(block_depth, &curr_token, &mut tokens);
-                        if block_depth <= 1 {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Expression_end("{".to_string()));
                         }
                         curr_token = String::new();
-
-                        block_depth += 1;
-                    }
-                    '}' => block_depth -= 1,
+                        block_depth = block_depth + 1;
+                    },
+                    '}' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                            tokens.push(Token::Expression_end("{".to_string()));
+                        }
+                        curr_token = String::new();
+                        block_depth = block_depth - 1;
+                    },
                     _ => {
                         if block_depth < 2 {
                             curr_token.push_str(ch.to_string().as_str());
@@ -346,8 +361,11 @@ pub mod parse {
                 },
                 None => break,
             }
+
         }
 
+
+        println!{"block depth: {}", block_depth};
         println!("{:?}", tokens);
 
         tokens
@@ -383,9 +401,8 @@ pub mod parse {
         let mut doc = false;
         let mut comment = false;
         let mut jdoc = Doc::new();
-        let mut jdoc_errs = String::new();
+        let mut _jdoc_errs = String::new();
         let mut symbols: Vec<String> = Vec::new();
-        let mut jdoc_keywords: Vec<String> = Vec::new();
         let mut doc_tokens: Vec<JdocToken> = Vec::new();
         let mut method: Method = Method::new();
         let mut gram_parts: Vec<Stream> = Vec::new();
@@ -413,9 +430,12 @@ pub mod parse {
                     "enum" => gram_parts.push(Stream::Object("enum".to_string())),
                     _ => {
                         if access_mod_match!(token.clone()) {
-                            class.ch_access(key.to_string());
+                            gram_parts.push(Stream::Access(key.to_string()));
                         } else if modifier_match!(token.clone()) {
-                            class.add_modifier(key.to_string());
+                            gram_parts.push(Stream::Modifier(key.to_string()));
+                        } else if is_keyword!(key, get_jdoc_keywords()) {
+                            doc_tokens.push(JdocToken::Keyword(key.clone()));
+                            gram_parts.push(Stream::Doc(key.to_string()));
                         } else {
                             println!("AHHHHHHH __________________");
                             println!("{}", key);
@@ -427,8 +447,8 @@ pub mod parse {
                     "*/" => {
                         if doc {
                             jdoc = get_doc(&doc_tokens);
-                            doc = false;
                         }
+                        doc = false;
                         comment = false;
                     }
                     "//" => comment = true,
@@ -441,7 +461,8 @@ pub mod parse {
                                 doc_tokens.push(JdocToken::Symbol(word.clone()));
                             }
                         } else {
-                            symbols.push(word.to_string())
+                            symbols.push(word.to_string());
+                            gram_parts.push(Stream::Variable(word));
                         }
                     }
                 },
@@ -475,9 +496,7 @@ pub mod parse {
                     }
                     symbols.clear();
                 }
-                Token::Doc_keyword(word) => jdoc_keywords.push(word.to_string()),
                 Token::Expression_end(end) => {
-                    println!("Expression end {}", end.as_str());
                     if parse_state.class {
                         let mut temp_gram = gram_parts.clone();
                         match end.as_ref() {
@@ -520,7 +539,7 @@ pub mod parse {
         class
     }
 
-    pub fn parse_file(path: &Path, lint: bool) -> Class {
+    pub fn parse_file(path: &Path, _lint: bool) -> Class {
         let file = File::open(path).expect("Could not open file");
         let mut contents = String::new();
         let mut buf = BufReader::new(file);

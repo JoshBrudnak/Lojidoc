@@ -1,6 +1,5 @@
 extern crate clap;
 extern crate colored;
-extern crate regex;
 extern crate threadpool;
 
 mod grammar;

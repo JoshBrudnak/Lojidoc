@@ -6,7 +6,6 @@ pub mod grammar {
     pub enum Token {
         Symbol(String),
         Keyword(String),
-        Doc_keyword(String),
         Join,
         Param_start,
         Param_end,
@@ -20,12 +19,9 @@ pub mod grammar {
             "class",
             "const",
             "default",
-            "else",
-            "if",
             "enum",
             "extends",
             "final",
-            "for",
             "implements",
             "import",
             "instanseof",
@@ -46,10 +42,8 @@ pub mod grammar {
             "throw",
             "throws",
             "transient",
-            "try",
             "void",
             "volatile",
-            "while",
         ]
     }
 
