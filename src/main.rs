@@ -411,6 +411,7 @@ pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, 
 pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool) {
     let files = Arc::new(file_paths);
     let size = files.len();
+    println!("{}", size);
     let mut pool_size = size / 4;
     if files.len() % 4 != 0 {
         pool_size += 1;

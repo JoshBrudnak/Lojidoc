@@ -136,16 +136,19 @@ pub mod parse {
                     exception = true;
                     implement = false;
                     parent = false;
+                    class_name = false;
                 }
                 Stream::Implement => {
                     exception = false;
                     implement = true;
                     parent = false;
+                    class_name = false;
                 }
                 Stream::Parent => {
                     exception = false;
                     implement = false;
                     parent = true;
+                    class_name = false;
                 }
                 _ => println!("Class pattern not supported {:?}", gram_parts[i]),
             }
@@ -163,10 +166,12 @@ pub mod parse {
             match gram_parts[i].clone() {
                 Stream::Variable(var) => {
                     if exception {
+                        if _java_doc.exceptions.len() > 0 {
                         method.add_exception(Exception {
                             desc: _java_doc.exceptions[0].clone().desc,
                             exception_type: var,
                         });
+                        }
                     } else if method_name {
                         method.ch_method_name(var);
                         method_name = false;
@@ -178,7 +183,10 @@ pub mod parse {
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
                 Stream::Exception => exception = true,
-                _ => println!("Method pattern not supported"),
+                _ => {
+                    println!("Method pattern not supported");
+                    println!("{:?}", gram_parts);
+                }
             }
         }
 
@@ -286,7 +294,7 @@ pub mod parse {
                 tokens.push(Token::Keyword(curr_token.to_string()));
             } else if is_keyword!(curr_token, jdoc_keywords) {
                 tokens.push(Token::Keyword(curr_token.to_string()));
-            } else {
+            } else if !curr_token.contains("@") {
                 tokens.push(Token::Symbol(curr_token.to_string()));
             }
         }
@@ -435,8 +443,9 @@ pub mod parse {
                             gram_parts.push(Stream::Modifier(key.to_string()));
                         } else if is_keyword!(key, get_jdoc_keywords()) {
                             doc_tokens.push(JdocToken::Keyword(key.clone()));
-                            gram_parts.push(Stream::Doc(key.to_string()));
-                        } else {
+                        } else if doc {
+                            doc_tokens.push(JdocToken::Symbol(key.clone()));
+                        } else if !comment && !doc {
                             println!("AHHHHHHH __________________");
                             println!("{}", key);
                         }
@@ -497,41 +506,44 @@ pub mod parse {
                     symbols.clear();
                 }
                 Token::Expression_end(end) => {
-                    if parse_state.class {
-                        let mut temp_gram = gram_parts.clone();
-                        match end.as_ref() {
-                            ";" => {
-                                if !class.is_class {
-                                } else if temp_gram.len() == 2 {
-                                    match temp_gram[0].clone() {
-                                        Stream::Import => match temp_gram[1].clone() {
-                                            Stream::Variable(key) => class.add_dependency(key),
-                                            _ => println!("Pattern not supported"),
-                                        },
-                                        Stream::Package => match temp_gram[1].clone() {
-                                            Stream::Variable(key) => class.ch_package_name(key),
-                                            _ => println!("Pattern not supported"),
-                                        },
-                                        _ => println!("Not import or package"),
-                                    }
-                                } else {
-                                    class.add_variable(get_var(temp_gram));
+                    let mut temp_gram = gram_parts.clone();
+                    match end.as_ref() {
+                        ";" => {
+                            if !class.is_class {
+                            } else if temp_gram.len() == 2 {
+                                match temp_gram[0].clone() {
+                                    Stream::Import => match temp_gram[1].clone() {
+                                        Stream::Variable(key) => class.add_dependency(key),
+                                        _ => println!("Pattern not supported"),
+                                    },
+                                    Stream::Package => match temp_gram[1].clone() {
+                                        Stream::Variable(key) => class.ch_package_name(key),
+                                        _ => println!("Pattern not supported"),
+                                    },
+                                    _ => println!("Not import or package"),
                                 }
+                            } else {
+                                class.add_variable(get_var(temp_gram));
                             }
-                            "{" => {
-                                if parse_state.interface || parse_state.class {
-                                    class = get_object(temp_gram.clone(), &jdoc);
-                                } else {
-                                    class.add_method(get_method(temp_gram, &jdoc));
-                                }
-                            }
-                            _ => println!("Other"),
                         }
-
-                        parse_state = ParseState::new();
-                        println!("{:?}", gram_parts);
-                        gram_parts.clear();
+                        "{" => {
+                            if parse_state.interface || parse_state.class {
+                                class = get_object(temp_gram.clone(), &jdoc);
+                            } else {
+                                class.add_method(get_method(temp_gram, &jdoc));
+                            }
+                        }
+                        _ => {
+                            if comment {
+                                comment = false;
+                            } else if !doc {
+                                panic!("Expression end not allowed");
+                            }
+                        }
                     }
+
+                    parse_state = ParseState::new();
+                    gram_parts.clear();
                 }
             }
         }
