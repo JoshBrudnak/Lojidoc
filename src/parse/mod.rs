@@ -38,21 +38,32 @@ pub mod parse {
                             JdocState::Param => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
-                                parameters.push(Param {
-                                    var_type: String::new(),
-                                    name: word_parts[0].to_string(),
-                                    desc: word_parts[1..].join(""),
-                                });
+                                if word_parts.len() > 1 {
+                                    parameters.push(Param {
+                                        var_type: String::new(),
+                                        name: word_parts[0].to_string(),
+                                        desc: word_parts[1..].join(""),
+                                    });
+                                } else if word_parts.len() == 1 {
+                                    parameters.push(Param {
+                                        var_type: String::new(),
+                                        name: word_parts[0].to_string(),
+                                        desc: String::new(),
+                                    });
+
+                                }
                             }
                             JdocState::Author => author = new_desc,
                             JdocState::Deprecated => deprecated = new_desc,
                             JdocState::Exception => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
+                                if exceptions.len() > 0 {
                                 exceptions.push(Exception {
                                     exception_type: word_parts[0].to_string(),
                                     desc: word_parts[1..].join(""),
                                 });
+                                }
                             }
                             JdocState::Version => version = new_desc,
                             JdocState::Desc => desc = new_desc,
@@ -212,7 +223,11 @@ pub mod parse {
                 }
                 Stream::Access(key) => member.ch_access(key),
                 Stream::Modifier(key) => member.add_modifier(key),
-                _ => println!("Member variable pattern not supported"),
+                _ => {
+                    println!("Member variable pattern not supported");
+                    println!("{:?}", gram_parts[i]);
+                    println!("{:?}", gram_parts);
+                }
             }
         }
 
@@ -356,7 +371,6 @@ pub mod parse {
                     '}' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
-                            tokens.push(Token::Expression_end("{".to_string()));
                         }
                         curr_token = String::new();
                         block_depth = block_depth - 1;
@@ -371,10 +385,6 @@ pub mod parse {
             }
 
         }
-
-
-        println!{"block depth: {}", block_depth};
-        println!("{:?}", tokens);
 
         tokens
     }
@@ -446,8 +456,7 @@ pub mod parse {
                         } else if doc {
                             doc_tokens.push(JdocToken::Symbol(key.clone()));
                         } else if !comment && !doc {
-                            println!("AHHHHHHH __________________");
-                            println!("{}", key);
+                            println!("Keyword not supported: {}", key);
                         }
                     }
                 },
@@ -456,6 +465,9 @@ pub mod parse {
                     "*/" => {
                         if doc {
                             jdoc = get_doc(&doc_tokens);
+                            parse_state = ParseState::new();
+                            doc_tokens.clear();
+                            gram_parts.clear();
                         }
                         doc = false;
                         comment = false;
@@ -469,7 +481,7 @@ pub mod parse {
                             } else {
                                 doc_tokens.push(JdocToken::Symbol(word.clone()));
                             }
-                        } else {
+                        } else if !comment {
                             symbols.push(word.to_string());
                             gram_parts.push(Stream::Variable(word));
                         }
@@ -486,9 +498,9 @@ pub mod parse {
                 }
                 Token::Param_start => {
                     let temp_sym = symbols.clone();
-                    if symbols.len() == 1 {
+                    if temp_sym.len() == 1 {
                         gram_parts.push(Stream::Type(temp_sym[0].clone()));
-                    } else if symbols.len() > 1 {
+                    } else if temp_sym.len() > 1 {
                         gram_parts.push(Stream::Type(temp_sym[0].clone()));
                         gram_parts.push(Stream::Variable(temp_sym[1].clone()));
                     }
@@ -520,7 +532,7 @@ pub mod parse {
                                         Stream::Variable(key) => class.ch_package_name(key),
                                         _ => println!("Pattern not supported"),
                                     },
-                                    _ => println!("Not import or package"),
+                                    _ => class.add_variable(get_var(temp_gram)),
                                 }
                             } else {
                                 class.add_variable(get_var(temp_gram));

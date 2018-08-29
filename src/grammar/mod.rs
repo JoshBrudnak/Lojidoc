@@ -27,7 +27,6 @@ pub mod grammar {
             "instanseof",
             "interface",
             "native",
-            "new",
             "package",
             "public",
             "private",
@@ -42,7 +41,6 @@ pub mod grammar {
             "throw",
             "throws",
             "transient",
-            "void",
             "volatile",
         ]
     }

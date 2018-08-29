@@ -60,7 +60,7 @@ impl Class {
         for i in 0..self.variables.len() {
             new_vars.push(self.variables[i].clone());
         }
-        for i in 0..self.variables.len() {
+        for i in 0..self.modifiers.len() {
             new_mods.push(self.modifiers[i].clone());
         }
         for i in 0..self.exceptions.len() {
