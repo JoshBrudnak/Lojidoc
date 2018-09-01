@@ -35,7 +35,7 @@ pub mod parse {
                         match state {
                             JdocState::Jdoc_return => {
                                 return_str = new_desc;
-                            },
+                            }
                             JdocState::Param => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
@@ -67,7 +67,7 @@ pub mod parse {
                             }
                             JdocState::Version => version = new_desc,
                             JdocState::Desc => desc = new_desc,
-                            _ => { /* println!("Code javadoc field not supported") */},
+                            _ => { /* println!("Code javadoc field not supported") */ }
                         }
 
                         word_buf.clear();
@@ -99,7 +99,7 @@ pub mod parse {
                     if key != "*" {
                         word_buf.push_str(format!("{} ", key.as_str()).as_str());
                     }
-                },
+                }
             }
         }
 
@@ -587,6 +587,3 @@ pub mod parse {
         }
     }
 }
-
-#[cfg(test)]
-mod test;
