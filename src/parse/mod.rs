@@ -1,336 +1,104 @@
 pub mod parse {
     //! A module which handles the parsing for java files
     extern crate colored;
-    extern crate regex;
 
-    use model::model::*;
+    use grammar::grammar::*;
+    use model::model::Class;
+    use model::model::Doc;
+    use model::model::Exception;
+    use model::model::Member;
+    use model::model::Method;
+    use model::model::Param;
 
     use colored::*;
-    use regex::Regex;
     use std::fs::File;
-    use std::io::BufRead;
     use std::io::BufReader;
+    use std::io::Read;
     use std::path::Path;
 
-    fn regex_match(text: &str, regex_str: &str) -> bool {
-        let reg = Regex::new(regex_str).unwrap();
-
-        reg.is_match(text)
-    }
-
-    fn start_doc_match(text: &String) -> bool {
-        if text.contains(r"/**") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    fn start_comment_match(text: &String) -> bool {
-        if text.contains(r"/*") && !text.contains("/**") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    fn end_doc_match(text: &String) -> bool {
-        if text.contains(r"**/") {
-            return true;
-        } else if text.contains(r"*/") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    fn trim_paren(part: String) -> String {
-        let no_paren: Vec<&str> = part.split(&[')', '{'][..]).collect();
-        no_paren.join("")
-    }
-
-    /// Determines the line type of a line of java code
-    ///
-    /// # Arguments
-    ///
-    /// * `line` - the line to determine the type from
-    /// * `state` - the state of parsing the java file
-    pub fn determine_line_type(line: &String, state: &ParseState) -> LineType {
-        let method_match = r"(public|protected|private|static|\s) +[\w\[\]]+\s+(\w+) *\([^\)]*\)";
-        let split = line.split(" ");
-        let parts: Vec<&str> = split.collect();
-
-        if line.contains("package ") && !state.class {
-            LineType::IsPackage
-        } else if line.contains("class ") && !state.comment && !state.doc {
-            LineType::IsClass
-        } else if line.contains("interface ") && !state.comment && !state.doc {
-            LineType::IsInterface
-        } else if line.contains("import ") && !state.class {
-            LineType::IsImport
-        } else if line.contains(";")
-            && parts.len() > 1
-            && !regex_match(&line, method_match)
-            && !line.contains("//")
-            && !line.contains("* ")
-            && !line.contains("/*")
-            && state.class
-            && !state.method
-        {
-            // Case were the member variable assignment calls a contructor
-            if line.contains("(") {
-                if line.contains("=") {
-                    LineType::IsVariable
-                } else {
-                    LineType::IsOther
-                }
-            } else {
-                LineType::IsVariable
-            }
-        } else if regex_match(&line, method_match) && state.class && !state.method {
-            if line.contains(" if(") {
-                LineType::IsOther
-            } else if line.contains(" for(") {
-                LineType::IsOther
-            } else if line.contains(" while(") {
-                LineType::IsOther
-            } else if line.contains(" catch(") {
-                LineType::IsOther
-            } else {
-                LineType::IsMethod
-            }
-        } else if start_doc_match(&line) {
-            LineType::IsStartdoc
-        } else if start_comment_match(&line) {
-            LineType::IsStartdoc
-        } else if end_doc_match(&line) {
-            LineType::IsEnddoc
-        } else if line.contains("//") {
-            LineType::IsComment
-        } else {
-            LineType::IsOther
-        }
-    }
-
-    pub fn handle_class(mut class: Class, line: &String) -> Class {
-        let access_match = r"(public|protected|private)";
-        let split = line.split(" ");
-        let parts: Vec<&str> = split.collect();
-
-        for (num, class_part) in parts.iter().enumerate() {
-            if regex_match(&class_part, access_match) {
-                class.ch_access(class_part.clone().to_string());
-            } else if class_part.contains("class") {
-                if parts.len() > num + 1 {
-                    class.ch_class_name(parts[num + 1].to_string());
-                }
-            } else if class_part.contains("extends") {
-                if parts.len() > num + 1 {
-                    class.ch_parent(parts[num + 1].to_string());
-                }
-            } else if class_part.contains("implements") {
-                if parts.len() > num + 1 {
-                    class.add_interface(parts[num + 1].to_string());
-                }
-            } else if class_part.contains("exception") {
-                if parts.len() > num + 1 {
-                    class.ch_class_name(parts[num + 1].to_string());
-                }
-            }
-        }
-
-        return class;
-    }
-
-    pub fn handle_interface(mut inter: Class, line: &String) -> Class {
-        let access_match = r"(public|protected|private)";
-        let split = line.split(" ");
-        let parts: Vec<&str> = split.collect();
-
-        for (num, inter_part) in parts.iter().enumerate() {
-            if regex_match(&inter_part, access_match) {
-                inter.ch_access(inter_part.clone().to_string());
-            } else if inter_part.contains("interface") {
-                if parts.len() > num + 1 {
-                    inter.ch_class_name(parts[num + 1].to_string());
-                }
-            }
-        }
-
-        return inter;
-    }
-
-    pub fn handle_method(line: &String, num: usize) -> Result<Method, &str> {
-        let parts = trim_whitespace(line);
-        let mut method = Method::new();
-        method.ch_line_num(num.to_string());
-
-        for (i, method_part) in parts.iter().enumerate() {
-            if method_part == "public"
-                || method_part == "private"
-                || method_part == "protected"
-            {
-                method.ch_privacy(method_part.clone().to_string());
-            } else if method_part == "void" {
-                method.ch_return_type("void".to_string());
-            } else if method_part == "static" {
-                method.ch_is_static(true);
-            } else if method_part == "exception" {
-                if parts.len() > i + 1 {
-                    let ex = Exception {
-                        exception_type: String::new(),
-                        desc: parts[i + 1].to_string(),
-                    };
-                    method.ch_exception(ex);
-                }
-            } else if method_part.contains("(") {
-                let name_parts: Vec<&str> = method_part.split("(").collect();
-                let mut param_def = false;
-                let mut param_type = String::new();
-
-                if name_parts[1] != "" {
-                    param_type = name_parts[1].to_string();
-                    param_def = true;
-                }
-                for j in (i + 1)..parts.len() {
-                    let mut meth_part = parts[j].clone();
-                    if parts[j].contains(")") {
-                        meth_part = trim_paren(meth_part);
-                    }
-
-                    if param_def {
-                        if parts[j].contains(">") || parts[j].contains("]") {
-                            param_type.push_str(format!("{}", meth_part).as_str());
-                        } else {
-                            method.add_param(Param {
-                                desc: String::new(),
-                                var_type: param_type.clone(),
-                                name: meth_part,
-                            });
-
-                            param_def = false;
-                        }
-                    } else {
-                        param_type = meth_part;
-                        param_def = true;
-                    }
-                }
-
-                if name_parts[0] == "" {
-                    method.ch_method_name(parts[i - 1].clone());
-                } else {
-                    method.ch_method_name(name_parts[0].to_string());
-                }
-            }
-        }
-
-        Ok(method)
-    }
-
-    fn doc_desc(parts: &Vec<String>) -> String {
-        let mut description = String::new();
-
-        for i in 0..parts.len() {
-            description.push_str(format!("{} ", parts[i].as_str()).as_str());
-        }
-
-        description
-    }
-
-    /// Removes all whitespcace from a line
-    ///
-    /// # Arguments
-    ///
-    /// * `line` - The string to remove all the whitespace from
-    pub fn trim_whitespace(line: &String) -> Vec<String> {
-        let sub_strs: Vec<&str> = line.split(" ").collect();
-        let mut trimmed: Vec<String> = Vec::new();
-
-        for sub in sub_strs {
-            let bytes: Vec<u8> = sub.to_string().into_bytes();
-            let mut new_str: Vec<u8> = Vec::new();
-
-            for b in bytes {
-                if b > 32 && b != 44 {
-                    new_str.push(b);
-                }
-            }
-
-            if new_str.len() == 1 {
-                // If the line has an individual asterisk it ignores it
-                if new_str[0] == 42 {
-                    continue;
-                }
-            } else if new_str.len() > 0 {
-                trimmed.push(unsafe { String::from_utf8_unchecked(new_str) });
-            }
-        }
-
-        trimmed
-    }
-
-    /// Handles parsing javadoc comments
-    pub fn handle_doc(buffer: &Vec<String>) -> Doc {
+    fn get_doc(tokens: &Vec<JdocToken>) -> Doc {
         let mut return_str = String::from("");
         let mut desc = String::from("");
         let mut parameters: Vec<Param> = Vec::new();
         let mut author = String::new();
         let mut version = String::new();
         let mut deprecated = String::new();
-        let mut except = Exception::new();
+        let mut exceptions: Vec<Exception> = Vec::new();
+        let mut state = JdocState::Desc;
+        let mut word_buf = String::new();
 
-        for line in buffer {
-            let mut line_vec: Vec<String> = trim_whitespace(&line.to_string());
+        for i in 0..tokens.len() {
+            match tokens[i].clone() {
+                JdocToken::Keyword(key) => {
+                    let new_desc = word_buf.clone();
+                    if i != 0 {
+                        match state {
+                            JdocState::Jdoc_return => {
+                                return_str = new_desc;
+                            }
+                            JdocState::Param => {
+                                let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
-            if line_vec.len() > 1 {
-                let len = line_vec.len();
+                                if word_parts.len() > 1 {
+                                    parameters.push(Param {
+                                        var_type: String::new(),
+                                        name: word_parts[0].to_string(),
+                                        desc: word_parts[1..].join(""),
+                                    });
+                                } else if word_parts.len() == 1 {
+                                    parameters.push(Param {
+                                        var_type: String::new(),
+                                        name: word_parts[0].to_string(),
+                                        desc: String::new(),
+                                    });
+                                }
+                            }
+                            JdocState::Author => author = new_desc,
+                            JdocState::Deprecated => deprecated = new_desc,
+                            JdocState::Exception => {
+                                let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
-                if len > 1 {
-                    if line.contains("@param") {
-                        if len == 2 {
-                            parameters.push(Param {
-                                name: line_vec[1].clone(),
-                                desc: String::from(""),
-                                var_type: String::new(),
-                            })
-                        } else if len > 2 {
-                            let description = doc_desc(&line_vec[2..].to_vec());
-
-                            parameters.push(Param {
-                                name: line_vec[1].clone(),
-                                desc: description,
-                                var_type: String::new(),
-                            })
+                                if exceptions.len() > 0 {
+                                    exceptions.push(Exception {
+                                        exception_type: word_parts[0].to_string(),
+                                        desc: word_parts[1..].join(""),
+                                    });
+                                }
+                            }
+                            JdocState::Version => version = new_desc,
+                            JdocState::Desc => desc = new_desc,
+                            _ => { /* println!("Code javadoc field not supported") */ }
                         }
-                    } else if line.contains("@return") {
-                        return_str = doc_desc(&line_vec[1..].to_vec());
-                    } else if line.contains("@author") {
-                        author = doc_desc(&line_vec[1..].to_vec());
-                    } else if line.contains("@expeption") {
-                        if len > 2 {
-                            let mut ex = Exception {
-                                exception_type: line_vec[1].clone(),
-                                desc: doc_desc(&line_vec[2..].to_vec()),
-                            };
-                            except = ex;
-                        }
-                    } else if line.contains("@throws") {
-                        if len > 2 {
-                            let mut ex = Exception {
-                                exception_type: line_vec[1].clone(),
-                                desc: doc_desc(&line_vec[2..].to_vec()),
-                            };
-                            except = ex;
-                        }
-                    } else if line.contains("@version") {
-                        version = doc_desc(&line_vec[1..].to_vec());
-                    } else if line.contains("@deprecated") {
-                        deprecated = doc_desc(&line_vec[1..].to_vec());
+
+                        word_buf.clear();
+                    }
+
+                    match key.as_ref() {
+                        "@return" => state = JdocState::Jdoc_return,
+                        "@param" => state = JdocState::Param,
+                        "@author" => state = JdocState::Author,
+                        "@code" => state = JdocState::Code,
+                        "@deprecated" => state = JdocState::Deprecated,
+                        "@docRoot" => state = JdocState::DocRoot,
+                        "@exception" => state = JdocState::Exception,
+                        "@inheritDoc" => state = JdocState::InheritDoc,
+                        "@link" => state = JdocState::Link,
+                        "@linkplain" => state = JdocState::Linkplain,
+                        "@literal" => state = JdocState::Literal,
+                        "@see" => state = JdocState::See,
+                        "@throws" => state = JdocState::Exception,
+                        "@since" => state = JdocState::Since,
+                        "@serialData" => state = JdocState::SerialData,
+                        "@serialField" => state = JdocState::SerialField,
+                        "@value" => state = JdocState::Value,
+                        "@version" => state = JdocState::Version,
+                        _ => println!("Unsupported javadoc keyword used"),
                     }
                 }
-
-                if !line.contains("@") {
-                    desc.push_str(format!(" {} ", doc_desc(&line_vec)).as_str());
+                JdocToken::Symbol(key) => {
+                    if key != "*" {
+                        word_buf.push_str(format!("{} ", key.as_str()).as_str());
+                    }
                 }
             }
         }
@@ -341,10 +109,137 @@ pub mod parse {
             return_desc: return_str,
             author: author,
             version: version,
-            exception: except,
+            exceptions: exceptions,
             deprecated: deprecated,
         }
     }
+
+    fn get_object(gram_parts: Vec<Stream>, _java_doc: &Doc, class: &mut Class) {
+        let mut implement = false;
+        let mut exception = false;
+        let mut parent = false;
+        let mut class_name = false;
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    if implement {
+                        class.add_interface(var);
+                    } else if exception {
+                        class.add_exception(Exception {
+                            desc: String::new(),
+                            exception_type: var,
+                        });
+                    } else if class_name {
+                        class.ch_class_name(var);
+                        class_name = false;
+                    } else if parent {
+                        class.ch_parent(var);
+                        parent = false;
+                    }
+                }
+                Stream::Object(var) => {
+                    if var == "interface" {
+                        class.ch_is_class(false);
+                    }
+                    class_name = true;
+                }
+                Stream::Access(key) => class.ch_access(key),
+                Stream::Modifier(key) => class.add_modifier(key),
+                Stream::Exception => {
+                    exception = true;
+                    implement = false;
+                    parent = false;
+                    class_name = false;
+                }
+                Stream::Implement => {
+                    exception = false;
+                    implement = true;
+                    parent = false;
+                    class_name = false;
+                }
+                Stream::Parent => {
+                    exception = false;
+                    implement = false;
+                    parent = true;
+                    class_name = false;
+                }
+                _ => println!("Class pattern not supported {:?}", gram_parts[i]),
+            }
+        }
+    }
+
+    fn get_method(gram_parts: Vec<Stream>, _java_doc: &Doc) -> Method {
+        let mut method = Method::new();
+        let mut exception = false;
+        let mut method_name = false;
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    if exception {
+                        if _java_doc.exceptions.len() > 0 {
+                            method.add_exception(Exception {
+                                desc: _java_doc.exceptions[0].clone().desc,
+                                exception_type: var,
+                            });
+                        }
+                    } else if method_name {
+                        method.ch_method_name(var);
+                        method_name = false;
+                    } else if method.name == "" {
+                        method.ch_return_type(var);
+                        method_name = true;
+                    }
+                }
+                Stream::Access(key) => method.ch_privacy(key),
+                Stream::Modifier(key) => method.add_modifier(key),
+                Stream::Exception => exception = true,
+                _ => {
+                    /*
+                    println!("Method pattern not supported");
+                    println!("{:?}", gram_parts);
+                    */
+                }
+            }
+        }
+
+        method
+    }
+
+    fn get_var(gram_parts: Vec<Stream>) -> Member {
+        let mut member = Member::new();
+        let mut member_name = false;
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    if var == "=" {
+                        return member;
+                    } else if member_name {
+                        member.ch_name(var);
+                        member_name = false;
+                    } else if member.name == "" {
+                        member.ch_type(var);
+                        member_name = true;
+                    }
+                }
+                Stream::Access(key) => member.ch_access(key),
+                Stream::Modifier(key) => member.add_modifier(key),
+                _ => {
+                    /*
+                    println!("Member variable pattern not supported");
+                    println!("{:?}", gram_parts[i]);
+                    println!("{:?}", gram_parts);
+                    */
+                }
+            }
+        }
+
+        member
+    }
+
+    /*
 
     fn match_params(
         method: &mut Method,
@@ -395,243 +290,300 @@ pub mod parse {
 
         new_param
     }
+    */
 
-    pub fn parse_file(path: &Path, lint: bool) -> Class {
-        use LineType::{
-            IsClass, IsComment, IsEnddoc, IsImport, IsInterface, IsMethod, IsOther, IsPackage,
-            IsStartdoc, IsVariable,
-        };
-
-        let file = File::open(path).expect("File not found");
-        let buf = BufReader::new(&file);
-        let mut doc_buffer: Vec<String> = Vec::new();
-        let mut class = Class::new();
-        let mut parse_state = ParseState::new();
-        let mut jdoc = Doc::new();
-        let mut jdoc_errs = String::new();
-        let mut bracket_depth = 0;
-
-        for (i, line) in buf.lines().enumerate() {
-            let l = line.unwrap();
-            let line_type = determine_line_type(&l, &parse_state);
-
-            match line_type {
-                IsPackage => {
-                    let split = l.split(" ");
-                    let parts: Vec<&str> = split.collect();
-
-                    if parse_state.doc_ready {
-                        class.ch_license(jdoc.description.clone());
-                        jdoc.clear();
-
-                        parse_state.ch_doc_ready(false);
-                    }
-
-                    for (num, w) in parts.iter().enumerate() {
-                        if w.contains("package") {
-                            let mut pack_name = &parts[num + 1].trim();
-                            class.ch_package_name(pack_name.to_string().replace(";", ""));
-                        }
-                    }
-                }
-                IsImport => {
-                    let split = l.split(" ");
-                    let mut parts: Vec<&str> = split.collect();
-                    let mut im_name = String::new();
-
-                    for (num, w) in parts.iter().enumerate() {
-                        if w.contains("import") {
-                            im_name.push_str(parts[num + 1].trim());
-                            if parts.len() > num + 2 {
-                                im_name.push_str(format!(" {}", parts[num + 2]).as_str());
-                            }
-                            class.add_dependency(im_name.replace(";", ""));
-                        }
-                    }
-                }
-                IsClass => {
-                    if !parse_state.class {
-                        class = handle_class(class, &l);
-                        class.ch_is_class(true);
-
-                        if lint {
-                            jdoc_errs.push_str(
-                                "Javadoc errors for class "
-                                    .green()
-                                    .bold()
-                                    .to_string()
-                                    .as_str(),
-                            );
-                            jdoc_errs.push_str(
-                                format!(
-                                    "{}\nFile: {}\n",
-                                    class.class_name,
-                                    path.to_str().unwrap().blue().to_string()
-                                ).as_str(),
-                            )
-                        }
-
-                        if parse_state.doc_ready {
-                            class.ch_description(jdoc.description.clone());
-                            class.ch_author(jdoc.author.clone());
-                            class.ch_version(jdoc.version.clone());
-                            class.ch_deprecation(jdoc.deprecated.clone());
-
-                            if class.description == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing description for class"
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                                jdoc_errs.push_str(format!(" {}\n", class.class_name).as_str());
-                            }
-
-                            jdoc.clear();
-                        } else {
-                            if lint {
-                                jdoc_errs.push_str(
-                                    "\tMISSING JAVADOC:".red().bold().to_string().as_str(),
-                                );
-                                jdoc_errs.push_str(" No javadoc found for class\n");
-                            }
-                        }
-
-                        parse_state.ch_class(true);
-                        parse_state.ch_doc_ready(false);
-                    }
-                }
-                IsInterface => {
-                    if !parse_state.class {
-                        class = handle_interface(class, &l);
-                        class.ch_is_class(false);
-
-                        if parse_state.doc_ready {
-                            class.ch_description(jdoc.description.clone());
-                            class.ch_author(jdoc.author.clone());
-                            class.ch_version(jdoc.version.clone());
-                            class.ch_deprecation(jdoc.deprecated.clone());
-
-                            if class.description == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing description for interface\n"
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                            }
-
-                            jdoc.clear();
-                        } else {
-                            if lint {
-                                jdoc_errs.push_str(
-                                    "MISSING JAVADOC: ".red().bold().to_string().as_str(),
-                                );
-                                jdoc_errs.push_str("\tNo javadoc found for interface\n");
-                            }
-                        }
-
-                        parse_state.ch_class(true);
-                        parse_state.ch_doc_ready(false);
-                    }
-                }
-                IsMethod => {
-                    let method_res = handle_method(&l, i + 1);
-
-                    if method_res.is_ok() {
-                        let mut j_method = method_res.unwrap();
-
-                        if parse_state.doc_ready {
-                            j_method.ch_description(jdoc.description.clone());
-
-                            if jdoc.return_desc != "" {
-                                j_method.ch_return_type(jdoc.return_desc.clone());
-                            }
-
-                            let n_params: Vec<Param> =
-                                match_params(&mut j_method, &jdoc.params, &mut jdoc_errs, lint);
-                            j_method.ch_params(n_params);
-
-                            if !jdoc.exception.is_empty() {
-                                j_method.ch_exception(jdoc.exception.clone());
-                            }
-
-                            if j_method.description == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing description for method "
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                                jdoc_errs.push_str(
-                                    format!("{} (Line: {})\n", j_method.name, i + 1).as_str(),
-                                );
-                            }
-
-                            if j_method.return_type == "" && lint {
-                                jdoc_errs.push_str(
-                                    "\tMissing return description for method "
-                                        .yellow()
-                                        .to_string()
-                                        .as_str(),
-                                );
-                                jdoc_errs.push_str(
-                                    format!("{} (Line: {})\n", j_method.name, i + 1).as_str(),
-                                );
-                            }
-                            jdoc.clear();
-                        } else {
-                            if lint {
-                                jdoc_errs.push_str(
-                                    "\tMISSING JAVADOC: ".red().bold().to_string().as_str(),
-                                );
-                                jdoc_errs.push_str(
-                                    format!(
-                                        "No javadoc found for method {} (Line: {})\n",
-                                        j_method.name,
-                                        i + 1
-                                    ).as_str(),
-                                );
-                            }
-                        }
-
-                        class.add_method(j_method);
-                    }
-                    parse_state.ch_doc_ready(false);
-                }
-                IsComment => {}
-                IsVariable => {}
-                IsStartdoc => {
-                    doc_buffer.clear();
-                    parse_state.ch_doc(true);
-                }
-                IsEnddoc => {
-                    if parse_state.doc {
-                        jdoc = handle_doc(&doc_buffer);
-                        parse_state.ch_doc(false);
-                        parse_state.ch_doc_ready(true);
-                    }
-                }
-                IsOther => {
-                    if parse_state.doc {
-                        doc_buffer.push(l.clone());
-                    }
+    macro_rules! is_keyword {
+        ($w:expr, $k:expr) => {{
+            let mut found = false;
+            for key in $k {
+                if key == $w {
+                    found = true
                 }
             }
 
-            if l.contains("{") && !l.contains("}") {
-                bracket_depth = bracket_depth + 1;
-            } else if l.contains("{") && !l.contains("}") {
-                bracket_depth = bracket_depth - 1;
+            found
+        }};
+    }
+
+    fn push_token(curr_token: &String, tokens: &mut Vec<Token>) {
+        if curr_token != "" {
+            let keywords = get_keywords();
+            let jdoc_keywords = get_jdoc_keywords();
+            if is_keyword!(curr_token, keywords) {
+                tokens.push(Token::Keyword(curr_token.to_string()));
+            } else if is_keyword!(curr_token, jdoc_keywords) {
+                tokens.push(Token::Keyword(curr_token.to_string()));
+            } else if !curr_token.contains("@") {
+                tokens.push(Token::Symbol(curr_token.to_string()));
+            }
+        }
+    }
+
+    pub fn lex_contents(content: &String) -> Vec<Token> {
+        let mut tokens: Vec<Token> = Vec::new();
+        let mut curr_token = String::new();
+        let mut block_depth = 0;
+        let mut blob = content.chars();
+
+        loop {
+            let ch_res = blob.next();
+
+            match ch_res {
+                Some(ch) => match ch {
+                    ' ' | '\t' | '\n' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                        }
+                        curr_token = String::new();
+                    }
+                    ',' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                            tokens.push(Token::Join)
+                        }
+                        curr_token = String::new();
+                    }
+                    ';' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                            tokens.push(Token::Expression_end(";".to_string()));
+                        }
+                        curr_token = String::new();
+                    }
+                    '(' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                            tokens.push(Token::Param_start);
+                        }
+                        curr_token = String::new();
+                    }
+                    ')' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                            tokens.push(Token::Param_end);
+                        }
+                        curr_token = String::new();
+                    }
+                    '{' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                            tokens.push(Token::Expression_end("{".to_string()));
+                        }
+                        curr_token = String::new();
+                        block_depth = block_depth + 1;
+                    }
+                    '}' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                        }
+                        curr_token = String::new();
+                        block_depth = block_depth - 1;
+                    }
+                    _ => {
+                        if block_depth < 2 {
+                            curr_token.push_str(ch.to_string().as_str());
+                        }
+                    }
+                },
+                None => break,
             }
         }
 
-        // Print all the errors found when linting the javadoc
-        println!("{}\n", jdoc_errs);
+        tokens
+    }
+
+    macro_rules! access_mod_match {
+        ($e:expr) => {
+            match $e {
+                Token::Keyword(value) => match value.as_ref() {
+                    "public" | "protected" | "private" => true,
+                    _ => false,
+                },
+                _ => false,
+            }
+        };
+    }
+
+    macro_rules! modifier_match {
+        ($e:expr) => {
+            match $e {
+                Token::Keyword(value) => match value.as_ref() {
+                    "static" | "final" | "abstract" | "synchronized" | "volatile" => true,
+                    _ => false,
+                },
+                _ => false,
+            }
+        };
+    }
+
+    pub fn construct_ast(tokens: Vec<Token>) -> Class {
+        let mut class = Class::new();
+        let mut in_object = false;
+        let mut parse_state = ParseState::new();
+        let mut doc = false;
+        let mut comment = false;
+        let mut jdoc = Doc::new();
+        let mut _jdoc_errs = String::new();
+        let mut symbols: Vec<String> = Vec::new();
+        let mut doc_tokens: Vec<JdocToken> = Vec::new();
+        let mut method: Method = Method::new();
+        let mut gram_parts: Vec<Stream> = Vec::new();
+
+        for token in tokens.clone() {
+            match token.clone() {
+                Token::Keyword(key) => match key.as_ref() {
+                    "class" => {
+                        if !doc && !comment {
+                            gram_parts.push(Stream::Object("class".to_string()));
+                            parse_state.ch_class(true);
+                        }
+                        in_object = true;
+                    }
+                    "interface" => {
+                        if !doc && !comment {
+                            gram_parts.push(Stream::Object("interface".to_string()));
+                            parse_state.ch_interface(true);
+                        }
+                        in_object = true;
+                    }
+                    "package" => gram_parts.push(Stream::Package),
+                    "throws" => gram_parts.push(Stream::Exception),
+                    "extends" => gram_parts.push(Stream::Parent),
+                    "implements" => gram_parts.push(Stream::Implement),
+                    "import" => gram_parts.push(Stream::Import),
+                    "enum" => gram_parts.push(Stream::Object("enum".to_string())),
+                    _ => {
+                        if access_mod_match!(token.clone()) {
+                            gram_parts.push(Stream::Access(key.to_string()));
+                        } else if modifier_match!(token.clone()) {
+                            gram_parts.push(Stream::Modifier(key.to_string()));
+                        } else if is_keyword!(key, get_jdoc_keywords()) {
+                            doc_tokens.push(JdocToken::Keyword(key.clone()));
+                        } else if doc {
+                            doc_tokens.push(JdocToken::Symbol(key.clone()));
+                        } else if !comment && !doc {
+                            println!("Keyword not supported: {}", key);
+                        }
+                    }
+                },
+                Token::Symbol(word) => match word.as_ref() {
+                    "/**" => doc = true,
+                    "*/" => {
+                        if doc {
+                            jdoc = get_doc(&doc_tokens);
+                            println!("{:?}", jdoc);
+                            parse_state = ParseState::new();
+                            doc_tokens.clear();
+                            gram_parts.clear();
+                        }
+                        doc = false;
+                        comment = false;
+                    }
+                    "//" => comment = true,
+                    "/*" => comment = true,
+                    _ => {
+                        if doc {
+                            if is_keyword!(word, get_jdoc_keywords()) {
+                                doc_tokens.push(JdocToken::Keyword(word.clone()));
+                            } else {
+                                doc_tokens.push(JdocToken::Symbol(word.clone()));
+                            }
+                        } else if !comment {
+                            symbols.push(word.to_string());
+                            gram_parts.push(Stream::Variable(word));
+                        }
+                    }
+                },
+                Token::Join => {
+                    if symbols.len() > 1 {
+                        let temp_sym = symbols.clone();
+                        gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                        gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                    }
+
+                    symbols.clear();
+                }
+                Token::Param_start => {
+                    let temp_sym = symbols.clone();
+                    if temp_sym.len() == 1 {
+                        gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                    } else if temp_sym.len() > 1 {
+                        gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                        gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                    }
+
+                    symbols.clear();
+                }
+                Token::Param_end => {
+                    let temp_sym = symbols.clone();
+                    if symbols.len() == 1 {
+                        method.ch_method_name(temp_sym[0].clone());
+                    } else if symbols.len() > 1 {
+                        method.ch_return_type(temp_sym[0].clone());
+                        method.ch_method_name(temp_sym[1].clone());
+                    }
+                    symbols.clear();
+                }
+                Token::Expression_end(end) => {
+                    let mut temp_gram = gram_parts.clone();
+                    match end.as_ref() {
+                        ";" => {
+                            if !in_object {
+                                if temp_gram.len() > 1 {
+                                    match temp_gram[0].clone() {
+                                        Stream::Import => match temp_gram[1].clone() {
+                                            Stream::Variable(key) => class.add_dependency(key),
+                                            _ => println!("Pattern not supported"),
+                                        },
+                                        Stream::Package => match temp_gram[1].clone() {
+                                            Stream::Variable(key) => class.ch_package_name(key),
+                                            _ => println!("Pattern not supported"),
+                                        },
+                                        _ => class.add_variable(get_var(temp_gram)),
+                                    }
+                                }
+                            } else {
+                                if class.is_class {
+                                    class.add_variable(get_var(temp_gram));
+                                }
+                            }
+                        }
+                        "{" => {
+                            if parse_state.interface || parse_state.class {
+                                get_object(temp_gram.clone(), &jdoc, &mut class);
+                            } else {
+                                class.add_method(get_method(temp_gram, &jdoc));
+                            }
+                        }
+                        _ => {
+                            if comment {
+                                comment = false;
+                            } else if !doc {
+                                panic!("Expression end not allowed");
+                            }
+                        }
+                    }
+
+                    parse_state = ParseState::new();
+                    gram_parts.clear();
+                }
+            }
+        }
 
         class
     }
-}
 
-#[cfg(test)]
-mod test;
+    pub fn parse_file(path: &Path, _lint: bool) -> Class {
+        let file = File::open(path).expect("Could not open file");
+        let mut contents = String::new();
+        let mut buf = BufReader::new(file);
+        let res = buf.read_to_string(&mut contents);
+        if res.is_ok() {
+            let tokens = lex_contents(&contents);
+            construct_ast(tokens)
+        } else {
+            println!("Unable to read file");
+            Class::new()
+        }
+    }
+}

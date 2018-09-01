@@ -4,49 +4,75 @@
 
 ## About
 
-Lojidoc is an tool for creating markdown documentation for java projects. The program reads the javadoc comments in the source code and uses some of the high level java declarations to provide consice and easily readable markdown documentation for each java file in the project. Lojidoc also allows the user to lint their javadocs and find all the areas project that are undocumented or have incorrect documentation.
+Lojidoc is a tool for creating markdown documentation for java projects. The
+program parses the javadoc comments in the source code and uses the
+high level java declarations to provide consice and easily readable markdown
+documentation for each java file in the project.
 
 ## Documentation
 
-[Lojidoc](https://joshbrudnak.github.io/Lojidoc/)
+[Source code documentation](https://joshbrudnak.github.io/Lojidoc/)
 
 ## Contribution
 
-Pull requests and feature requests are always welcome. Please read the [Contribution guidelines](https://github.com/JoshBrudnak/Lojidoc/blob/master/CONTRIBUTING.md)
+Pull requests and feature requests are always welcome. If you are opening an issue please use one of the provided issue templates as a guide. For more information about contributing read the [Contribution guidelines](https://github.com/JoshBrudnak/Lojidoc/blob/master/CONTRIBUTING.md).
 
 ## Installation
 
-This application can be installed with [Cargo](http://crates.io).
+Lojidoc can be installed using [Cargo](http://crates.io/lojidoc). The following packages are required for installation.
 
-```toml
-lojidoc = "0.1.0"
+- rustc [[installation]](https://www.rust-lang.org/en-US/install.html)
+- cargo [[installation]](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+
+> Note: cargo is installed by default with a rustc installation
+
+Lojidoc can then be installed using `cargo install`
+```bash
+$ cargo install lojidoc
 ```
+Once installed the default location of the executable will be `~/.cargo/bin/lojidoc`
 
 ## Building from source
 
 ```bash
 $ git clone https://github.com/JoshBrudnak/Lojidoc.git
-& cd ./Lojidoc/
+$ cd ./Lojidoc/
 $ cargo build --release
 ```
 
 ## Usage
 
-Basic Usage
+#### Basic Usage
 
+```bash
+$ lojidoc [Project_Path] [FLAGS] [OPTIONS]
 ```
-$ ./lojidoc [Project_Path]
+
+#### Example Usages
+
+Example of passing Lojidoc the repository URL and destination directory
+```bash
+$ lojidoc ~/Project/src/java/ -c https://github.com/JoshBrudnak/Project/tree/master -d ~/docs/
 ```
 
-Other options
 
-| Flag | Description                                             |
-| ---- | ------------------------------------------------------- |
-| s    | Use only on thread for execution of the program         |
-| l    | Check a java project for incorrent and missing javadocs |
-| h    | Prints help information                                 |
+Example of using the lint option to find javadoc mistakes and using a single thread.
+```bash
+$ lojidoc ~/Project/src/java/ -l -s
+```
+> Note: Lojidoc will not generate any markdown files when using the lint flag
 
-| Options | Description                                                    |
-| ------- | -------------------------------------------------------------- |
-| c       | Add the git repository url of the project to the documentation |
-| d       | Sets the destination directory of the created markdown files   |
+## Command line arguments
+
+| Flag | Description                                                     |
+| ---- | --------------------------------------------------------------- |
+| s    | Use only on thread for execution of the program                 |
+| l    | Check a java project for incorrect or missing javadocs          |
+| h    | Prints help information                                         |
+| v    | Generate documentation for a project and provide verbose output |
+| V    | Prints the version information                                  |
+
+| Option    | Description                                                    |
+| --------- | -------------------------------------------------------------- |
+| c <URL>   | Add the git repository url of the project to the documentation |
+| d <FILE>  | Sets the destination directory of the created markdown files   |

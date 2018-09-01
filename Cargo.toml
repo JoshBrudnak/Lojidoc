@@ -14,10 +14,9 @@ exclude = [
 ]
 
 [badges]
-travis-ci = { repository = "JoshBrudnak/Javadoc-To-Markdown" }
+travis-ci = { repository = "JoshBrudnak/Lojidoc" }
 
 [dependencies]
-regex = "0.1.41"
 threadpool = "1.7.1"
 lazy_static = "1.0.1"
 clap = "2.32"
