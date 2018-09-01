@@ -3,13 +3,36 @@ pub mod grammar {
     //! Module that contains grammar
 
     #[derive(Clone, Debug)]
+    pub struct Ignore {
+        pub is_ignore: bool,
+        pub ignore_token: String,
+    }
+
+    impl Ignore {
+        pub fn new() -> Ignore {
+            Ignore {
+                is_ignore: false,
+                ignore_token: String::new(),
+            }
+        }
+        pub fn set_ignore(&mut self, value: String) {
+            self.is_ignore = true;
+            self.ignore_token = value;
+        }
+        pub fn clear(&mut self) {
+            self.is_ignore = false;
+            self.ignore_token = String::new();
+        }
+    }
+
+    #[derive(Clone, Debug)]
     pub enum Token {
         Symbol(String),
         Keyword(String),
         Join,
-        Param_start,
-        Param_end,
-        Expression_end(String),
+        ParamStart,
+        ParamEnd,
+        ExpressionEnd(String),
     }
 
     /// Gets a full list of all the keywords for the lexer
