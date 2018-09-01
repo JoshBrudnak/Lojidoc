@@ -67,7 +67,7 @@ pub mod parse {
                             }
                             JdocState::Version => version = new_desc,
                             JdocState::Desc => desc = new_desc,
-                            _ => { /* println!("Code javadoc field not supported") */ }
+                            _ => println!("Code javadoc field not supported"),
                         }
 
                         word_buf.clear();
@@ -214,11 +214,7 @@ pub mod parse {
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
                 Stream::Exception => exception = true,
-                _ => {
-                    println!("Method pattern not supported");
-                    println!("{:?}", gram_parts[i]);
-                    println!("{:?}", gram_parts);
-                }
+                _ => println!("Method pattern not supported"),
             }
         }
 
@@ -254,7 +250,6 @@ pub mod parse {
                         return member;
                     } else if member_name {
                         member.ch_name(var);
-                        println!("{:?}", member);
                         return member;
                     } else {
                         member.ch_type(var);
@@ -460,6 +455,7 @@ pub mod parse {
         let mut doc_tokens: Vec<JdocToken> = Vec::new();
         let mut method: Method = Method::new();
         let mut gram_parts: Vec<Stream> = Vec::new();
+        let mut comment_buf = String::new();
 
         for token in tokens.clone() {
             if ignore {
@@ -488,7 +484,13 @@ pub mod parse {
                             }
                             in_object = true;
                         }
-                        "package" => gram_parts.push(Stream::Package),
+                        "package" => {
+                            println!("{}", comment_buf);
+                            if comment_buf != "" {
+                                class.ch_license(comment_buf.clone());
+                            }
+                            gram_parts.push(Stream::Package);
+                        }
                         "throws" => gram_parts.push(Stream::Exception),
                         "extends" => gram_parts.push(Stream::Parent),
                         "implements" => gram_parts.push(Stream::Implement),
@@ -508,6 +510,11 @@ pub mod parse {
                             }
                         }
                     }
+
+                    if comment {
+                        comment_buf.push_str(format!("{} ", key).as_str());
+                    }
+
                     annotation = false;
                 }
                 Token::Symbol(word) => {
@@ -516,16 +523,19 @@ pub mod parse {
                         "*/" => {
                             if doc {
                                 jdoc = get_doc(&doc_tokens);
-                                println!("{:?}", jdoc);
                                 parse_state = ParseState::new();
                                 doc_tokens.clear();
                                 gram_parts.clear();
                             }
+
                             doc = false;
                             comment = false;
                         }
                         "//" => comment = true,
-                        "/*" => comment = true,
+                        "/*" => {
+                            comment_buf = String::new();
+                            comment = true;
+                        }
                         _ => {
                             if doc {
                                 if is_keyword!(word, get_jdoc_keywords()) {
@@ -538,8 +548,14 @@ pub mod parse {
                                 continue;
                             } else if !comment {
                                 symbols.push(word.to_string());
-                                gram_parts.push(Stream::Variable(word));
+                                gram_parts.push(Stream::Variable(word.clone()));
                             }
+                        }
+                    }
+
+                    if comment {
+                        if word != "*" && word != "/*" {
+                            comment_buf.push_str(format!("{} ", word).as_str());
                         }
                     }
 
@@ -550,6 +566,10 @@ pub mod parse {
                         let temp_sym = symbols.clone();
                         gram_parts.push(Stream::Type(temp_sym[0].clone()));
                         gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                    }
+
+                    if comment {
+                        comment_buf.push_str(",");
                     }
 
                     symbols.clear();
@@ -568,6 +588,10 @@ pub mod parse {
                         }
                     }
 
+                    if comment {
+                        comment_buf.push_str("(");
+                    }
+
                     symbols.clear();
                 }
                 Token::ParamEnd => {
@@ -579,6 +603,10 @@ pub mod parse {
                         method.ch_method_name(temp_sym[1].clone());
                     }
                     symbols.clear();
+
+                    if comment {
+                        comment_buf.push_str(")");
+                    }
                 }
                 Token::ExpressionEnd(end) => {
                     let mut temp_gram = gram_parts.clone();
@@ -621,6 +649,7 @@ pub mod parse {
                     }
 
                     parse_state = ParseState::new();
+                    jdoc = Doc::new();
                     gram_parts.clear();
                 }
             }

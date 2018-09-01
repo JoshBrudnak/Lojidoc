@@ -1,3 +1,4 @@
+use model::member::Member;
 use model::method::Method;
 
 #[derive(Debug)]
@@ -13,6 +14,7 @@ pub struct Interface {
     pub name: String,
     pub description: String,
     pub dependencies: Vec<String>,
+    pub variables: Vec<Member>,
     pub methods: Vec<Method>,
 }
 
@@ -28,14 +30,20 @@ impl Interface {
             author: String::new(),
             name: String::new(),
             description: String::new(),
+            variables: Vec::new(),
             methods: Vec::new(),
         }
     }
     pub fn clone(&mut self) -> Interface {
         let mut new_methods = Vec::new();
+        let mut new_variables = Vec::new();
 
         for i in 0..self.methods.len() {
             new_methods.push(self.methods[i].clone());
+        }
+
+        for i in 0..self.variables.len() {
+            new_variables.push(self.variables[i].clone());
         }
 
         Interface {
@@ -48,6 +56,7 @@ impl Interface {
             author: self.author.clone(),
             name: self.name.clone(),
             description: self.description.clone(),
+            variables: new_variables,
             methods: new_methods,
         }
     }

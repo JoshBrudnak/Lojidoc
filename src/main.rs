@@ -90,13 +90,14 @@ pub fn gen_class_docs(class: Class) -> String {
     if class.license != "" {
         doc.push_str("<details>  \n");
         doc.push_str("  <summary>  \n");
-        doc.push_str("    Show license  \n");
+        doc.push_str("    Show license  \n\n");
         doc.push_str("  </summary>  \n");
 
         doc.push_str("  <ul>  \n");
         doc.push_str(class.license.as_str());
         doc.push_str("  </ul>  \n");
         doc.push_str("</details>  \n\n");
+        doc.push_str("<br/>");
     }
 
     doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
@@ -113,18 +114,23 @@ pub fn gen_class_docs(class: Class) -> String {
         for inter in class.interfaces {
             doc.push_str(format!("- {}  \n", inter).as_str());
         }
+        doc.push_str("\n");
     }
 
     doc.push_str(format!("package: {}  \n\n", class.package_name.trim()).as_str());
 
-    for exception in class.exceptions {
-        doc.push_str(
-            format!(
-                "Throws {}: {}  \n\n",
-                exception.exception_type, exception.desc
-            ).as_str(),
-        );
+    if class.exceptions.len() > 0 {
+        for exception in class.exceptions {
+            doc.push_str(
+                format!(
+                    "Throws {}: {}  \n\n",
+                    exception.exception_type, exception.desc
+                ).as_str(),
+            );
+        }
+        doc.push_str("\n");
     }
+
     doc.push_str("## Dependencies\n\n");
     doc.push_str("<details>  \n");
     doc.push_str("  <summary>  \n");
@@ -201,18 +207,29 @@ pub fn gen_var_docs(variables: Vec<Member>, path: String) -> String {
         if member.line_num != "" {
             let mut file_path = path.clone();
             file_path.push_str(format!("#L{}", member.line_num).as_str());
-            doc.push_str(format!("### {} [[src]]({})\n\n", member.name, file_path).as_str());
+            doc.push_str(format!("### {} {} [[src]]({})\n\n", member.var_type, member.name, file_path).as_str());
         } else {
-            doc.push_str(format!("### {}\n\n", member.name).as_str());
+            doc.push_str(format!("### {} {}\n\n", member.var_type, member.name).as_str());
         }
 
-        doc.push_str(format!("+ Description: {}  \n", member.desc).as_str());
-        doc.push_str(format!("+ Access: {}  \n", member.access.trim()).as_str());
-        doc.push_str(format!("+ Type: {}  \n\n", member.var_type).as_str());
+        if member.desc != "" {
+            doc.push_str(format!("+ Description: {}  \n", member.desc).as_str());
+        }
 
-        for mem in member.modifiers {
+        if member.access == "" {
+            doc.push_str("+ Access: package-private  \n");
+        } else {
+            doc.push_str(format!("+ Access: {}  \n", member.access).as_str());
+        }
+
+        if member.modifiers.len() > 0 {
             doc.push_str("+ Modifiers: ");
-            doc.push_str(format!("{}  \n", mem).as_str())
+
+            for mem in member.modifiers {
+                doc.push_str(format!("{} ", mem).as_str())
+            }
+
+            doc.push_str("\n");
         }
 
         doc.push_str("\n");
@@ -238,6 +255,7 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
     }
 
     for member in methods {
+        if member.name != String::from("") {
         if member.line_num != "" {
             let mut file_path = path.clone();
             file_path.push_str(format!("#L{}", member.line_num).as_str());
@@ -247,11 +265,21 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
         }
 
         doc.push_str(format!("+ Description: {}  \n", member.description).as_str());
-        doc.push_str(format!("+ Access: {}  \n", member.privacy.trim()).as_str());
 
-        for mem in member.modifiers {
+        if member.privacy == "" {
+            doc.push_str("+ Access: package-private  \n");
+        } else {
+            doc.push_str(format!("+ Access: {}  \n", member.privacy).as_str());
+        }
+
+        if member.modifiers.len() > 0 {
             doc.push_str("+ Modifiers: ");
-            doc.push_str(format!("{}  \n", mem).as_str())
+
+            for mem in member.modifiers {
+                doc.push_str(format!("{} ", mem).as_str())
+            }
+
+            doc.push_str("\n");
         }
 
         for exception in member.exceptions {
@@ -281,6 +309,7 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
         }
 
         doc.push_str("\n\n");
+    }
     }
 
     doc
@@ -313,6 +342,7 @@ pub fn generate_markdown(proj: Project, dest: &str) {
         let mut file = File::create(name).unwrap();
 
         let mut doc = gen_interface_docs(inter.clone());
+        doc.push_str(gen_var_docs(inter.variables, inter.file_path.clone()).as_str());
         doc.push_str(gen_method_docs(inter.methods, inter.file_path).as_str());
         file.write(doc.as_str().as_bytes())
             .expect("Not able to write to file");

@@ -89,9 +89,13 @@ impl Class {
     }
     pub fn to_interface(&mut self) -> Interface {
         let mut new_methods = Vec::new();
+        let mut new_variables = Vec::new();
 
         for i in 0..self.methods.len() {
             new_methods.push(self.methods[i].clone());
+        }
+        for i in 0..self.variables.len() {
+            new_variables.push(self.variables[i].clone());
         }
 
         Interface {
@@ -104,6 +108,7 @@ impl Class {
             author: self.author.clone(),
             name: self.class_name.clone(),
             description: self.description.clone(),
+            variables: new_variables,
             methods: new_methods,
         }
     }
@@ -111,7 +116,7 @@ impl Class {
         self.access = value;
     }
     pub fn ch_license(&mut self, value: String) {
-        self.file_path = value;
+        self.license = value;
     }
     pub fn ch_file_path(&mut self, value: String) {
         self.file_path = value;
