@@ -467,36 +467,30 @@ fn main() {
                 .required(true)
                 .help("Set the input directory to use")
                 .index(1),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("context")
                 .help("Set the context path of the project")
                 .value_name("FILE")
                 .short("c"),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("lint")
                 .help("Check a java project for incorrent and missing javadocs")
                 .short("l"),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("verbose")
                 .short("v")
                 .help("Generate documentation for a project and provide verbose output"),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("single-thread")
                 .short("s")
                 .help("Use only on thread for execution of the program"),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("destination")
                 .required(false)
                 .value_name("FILE")
                 .short("d")
                 .help("Sets the destination directory of the created markdown files"),
-        )
-        .get_matches();
+        ).get_matches();
 
     let dir = matches
         .value_of("INPUT")
