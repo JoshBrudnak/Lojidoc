@@ -516,8 +516,8 @@ fn main() {
     println!("\nGenerating documentation from {}\n", dir);
 
     if file_paths.len() > 0 {
-            document_single(file_paths, dest, context, verbose);
-            /*
+        document_single(file_paths, dest, context, verbose);
+    /*
         if single_thread {
         } else if lint {
             lint_javadoc(file_paths, dest);

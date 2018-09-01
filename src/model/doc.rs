@@ -2,6 +2,7 @@ use model::exception::Exception;
 use model::param::Param;
 
 /// Struct representing data contained in javadoc comments
+#[derive(Debug)]
 pub struct Doc {
     pub params: Vec<Param>,
     pub description: String,

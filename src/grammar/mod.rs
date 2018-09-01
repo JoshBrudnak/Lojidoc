@@ -86,13 +86,13 @@ pub mod grammar {
         Return_type(String),
     }
 
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub enum JdocToken {
         Keyword(String),
         Symbol(String),
     }
 
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub enum JdocState {
         Desc,
         Jdoc_return,

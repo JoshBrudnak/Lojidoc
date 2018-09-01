@@ -25,7 +25,6 @@ pub mod parse {
         let mut deprecated = String::new();
         let mut exceptions: Vec<Exception> = Vec::new();
         let mut state = JdocState::Desc;
-
         let mut word_buf = String::new();
 
         for i in 0..tokens.len() {
@@ -34,7 +33,9 @@ pub mod parse {
                     let new_desc = word_buf.clone();
                     if i != 0 {
                         match state {
-                            JdocState::Jdoc_return => return_str = new_desc,
+                            JdocState::Jdoc_return => {
+                                return_str = new_desc;
+                            },
                             JdocState::Param => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
@@ -50,7 +51,6 @@ pub mod parse {
                                         name: word_parts[0].to_string(),
                                         desc: String::new(),
                                     });
-
                                 }
                             }
                             JdocState::Author => author = new_desc,
@@ -59,15 +59,15 @@ pub mod parse {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
                                 if exceptions.len() > 0 {
-                                exceptions.push(Exception {
-                                    exception_type: word_parts[0].to_string(),
-                                    desc: word_parts[1..].join(""),
-                                });
+                                    exceptions.push(Exception {
+                                        exception_type: word_parts[0].to_string(),
+                                        desc: word_parts[1..].join(""),
+                                    });
                                 }
                             }
                             JdocState::Version => version = new_desc,
                             JdocState::Desc => desc = new_desc,
-                            _ => println!("Code javadoc field not supported"),
+                            _ => { /* println!("Code javadoc field not supported") */},
                         }
 
                         word_buf.clear();
@@ -95,7 +95,11 @@ pub mod parse {
                         _ => println!("Unsupported javadoc keyword used"),
                     }
                 }
-                JdocToken::Symbol(key) => word_buf.push_str(key.as_str()),
+                JdocToken::Symbol(key) => {
+                    if key != "*" {
+                        word_buf.push_str(format!("{} ", key.as_str()).as_str());
+                    }
+                },
             }
         }
 
@@ -110,8 +114,7 @@ pub mod parse {
         }
     }
 
-    fn get_object(gram_parts: Vec<Stream>, _java_doc: &Doc) -> Class {
-        let mut class = Class::new();
+    fn get_object(gram_parts: Vec<Stream>, _java_doc: &Doc, class: &mut Class) {
         let mut implement = false;
         let mut exception = false;
         let mut parent = false;
@@ -164,8 +167,6 @@ pub mod parse {
                 _ => println!("Class pattern not supported {:?}", gram_parts[i]),
             }
         }
-
-        class
     }
 
     fn get_method(gram_parts: Vec<Stream>, _java_doc: &Doc) -> Method {
@@ -178,10 +179,10 @@ pub mod parse {
                 Stream::Variable(var) => {
                     if exception {
                         if _java_doc.exceptions.len() > 0 {
-                        method.add_exception(Exception {
-                            desc: _java_doc.exceptions[0].clone().desc,
-                            exception_type: var,
-                        });
+                            method.add_exception(Exception {
+                                desc: _java_doc.exceptions[0].clone().desc,
+                                exception_type: var,
+                            });
                         }
                     } else if method_name {
                         method.ch_method_name(var);
@@ -195,8 +196,10 @@ pub mod parse {
                 Stream::Modifier(key) => method.add_modifier(key),
                 Stream::Exception => exception = true,
                 _ => {
+                    /*
                     println!("Method pattern not supported");
                     println!("{:?}", gram_parts);
+                    */
                 }
             }
         }
@@ -224,9 +227,11 @@ pub mod parse {
                 Stream::Access(key) => member.ch_access(key),
                 Stream::Modifier(key) => member.add_modifier(key),
                 _ => {
+                    /*
                     println!("Member variable pattern not supported");
                     println!("{:?}", gram_parts[i]);
                     println!("{:?}", gram_parts);
+                    */
                 }
             }
         }
@@ -305,7 +310,6 @@ pub mod parse {
             let keywords = get_keywords();
             let jdoc_keywords = get_jdoc_keywords();
             if is_keyword!(curr_token, keywords) {
-            println!("{}", curr_token);
                 tokens.push(Token::Keyword(curr_token.to_string()));
             } else if is_keyword!(curr_token, jdoc_keywords) {
                 tokens.push(Token::Keyword(curr_token.to_string()));
@@ -331,35 +335,35 @@ pub mod parse {
                             push_token(&curr_token, &mut tokens);
                         }
                         curr_token = String::new();
-                    },
+                    }
                     ',' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Join)
                         }
                         curr_token = String::new();
-                    },
+                    }
                     ';' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Expression_end(";".to_string()));
                         }
                         curr_token = String::new();
-                    },
+                    }
                     '(' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Param_start);
                         }
                         curr_token = String::new();
-                    },
+                    }
                     ')' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                             tokens.push(Token::Param_end);
                         }
                         curr_token = String::new();
-                    },
+                    }
                     '{' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
@@ -367,14 +371,14 @@ pub mod parse {
                         }
                         curr_token = String::new();
                         block_depth = block_depth + 1;
-                    },
+                    }
                     '}' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                         }
                         curr_token = String::new();
                         block_depth = block_depth - 1;
-                    },
+                    }
                     _ => {
                         if block_depth < 2 {
                             curr_token.push_str(ch.to_string().as_str());
@@ -383,7 +387,6 @@ pub mod parse {
                 },
                 None => break,
             }
-
         }
 
         tokens
@@ -415,6 +418,7 @@ pub mod parse {
 
     pub fn construct_ast(tokens: Vec<Token>) -> Class {
         let mut class = Class::new();
+        let mut in_object = false;
         let mut parse_state = ParseState::new();
         let mut doc = false;
         let mut comment = false;
@@ -433,12 +437,14 @@ pub mod parse {
                             gram_parts.push(Stream::Object("class".to_string()));
                             parse_state.ch_class(true);
                         }
+                        in_object = true;
                     }
                     "interface" => {
                         if !doc && !comment {
                             gram_parts.push(Stream::Object("interface".to_string()));
                             parse_state.ch_interface(true);
                         }
+                        in_object = true;
                     }
                     "package" => gram_parts.push(Stream::Package),
                     "throws" => gram_parts.push(Stream::Exception),
@@ -465,6 +471,7 @@ pub mod parse {
                     "*/" => {
                         if doc {
                             jdoc = get_doc(&doc_tokens);
+                            println!("{:?}", jdoc);
                             parse_state = ParseState::new();
                             doc_tokens.clear();
                             gram_parts.clear();
@@ -521,26 +528,29 @@ pub mod parse {
                     let mut temp_gram = gram_parts.clone();
                     match end.as_ref() {
                         ";" => {
-                            if !class.is_class {
-                            } else if temp_gram.len() == 2 {
-                                match temp_gram[0].clone() {
-                                    Stream::Import => match temp_gram[1].clone() {
-                                        Stream::Variable(key) => class.add_dependency(key),
-                                        _ => println!("Pattern not supported"),
-                                    },
-                                    Stream::Package => match temp_gram[1].clone() {
-                                        Stream::Variable(key) => class.ch_package_name(key),
-                                        _ => println!("Pattern not supported"),
-                                    },
-                                    _ => class.add_variable(get_var(temp_gram)),
+                            if !in_object {
+                                if temp_gram.len() > 1 {
+                                    match temp_gram[0].clone() {
+                                        Stream::Import => match temp_gram[1].clone() {
+                                            Stream::Variable(key) => class.add_dependency(key),
+                                            _ => println!("Pattern not supported"),
+                                        },
+                                        Stream::Package => match temp_gram[1].clone() {
+                                            Stream::Variable(key) => class.ch_package_name(key),
+                                            _ => println!("Pattern not supported"),
+                                        },
+                                        _ => class.add_variable(get_var(temp_gram)),
+                                    }
                                 }
                             } else {
-                                class.add_variable(get_var(temp_gram));
+                                if class.is_class {
+                                    class.add_variable(get_var(temp_gram));
+                                }
                             }
                         }
                         "{" => {
                             if parse_state.interface || parse_state.class {
-                                class = get_object(temp_gram.clone(), &jdoc);
+                                get_object(temp_gram.clone(), &jdoc, &mut class);
                             } else {
                                 class.add_method(get_method(temp_gram, &jdoc));
                             }
