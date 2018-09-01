@@ -180,6 +180,8 @@ pub mod parse {
         let mut method = Method::new();
         let mut exception = false;
         let mut method_name = false;
+        let mut param_name = false;
+        let mut param_type = String::new();
 
         for i in 0..gram_parts.len() {
             match gram_parts[i].clone() {
@@ -194,19 +196,28 @@ pub mod parse {
                     } else if method_name {
                         method.ch_method_name(var);
                         method_name = false;
+                    } else if param_name {
+                        method.add_param(Param {
+                            var_type: param_type.clone(),
+                            name: var,
+                            desc: String::new(),
+                        });
                     } else if method.name == "" {
                         method.ch_return_type(var);
                         method_name = true;
                     }
                 }
+                Stream::Type(key) => {
+                    param_type = key;
+                    param_name = true;
+                }
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
                 Stream::Exception => exception = true,
                 _ => {
-                    /*
                     println!("Method pattern not supported");
+                    println!("{:?}", gram_parts[i]);
                     println!("{:?}", gram_parts);
-                    */
                 }
             }
         }

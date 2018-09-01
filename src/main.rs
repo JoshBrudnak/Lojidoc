@@ -19,6 +19,7 @@ use threadpool::ThreadPool;
 use model::model::Class;
 use model::model::Interface;
 use model::model::Method;
+use model::model::Member;
 use model::model::Project;
 use parse::parse::parse_file;
 
@@ -180,13 +181,61 @@ pub fn gen_interface_docs(inter: Interface) -> String {
     doc
 }
 
+/// Generates the markdown documentation for the member variables of a class
+///
+/// # Arguments
+///
+/// * `variables` - The vector of class methods to be documented
+pub fn gen_var_docs(variables: Vec<Member>, path: String) -> String {
+    let mut doc = String::new();
+
+    if variables.len() > 0 {
+        doc.push_str("## Member Variables\n\n");
+    } else {
+        doc.push_str("## No member variables in this class\n\n");
+
+        return doc;
+    }
+
+    for member in variables {
+        if member.line_num != "" {
+            let mut file_path = path.clone();
+            file_path.push_str(format!("#L{}", member.line_num).as_str());
+            doc.push_str(format!("### {} [[src]]({})\n\n", member.name, file_path).as_str());
+        } else {
+            doc.push_str(format!("### {}\n\n", member.name).as_str());
+        }
+
+        doc.push_str(format!("+ Description: {}  \n", member.desc).as_str());
+        doc.push_str(format!("+ Access: {}  \n", member.access.trim()).as_str());
+        doc.push_str(format!("+ Type: {}  \n\n", member.var_type).as_str());
+
+        for mem in member.modifiers {
+            doc.push_str("+ Modifiers: ");
+            doc.push_str(format!("{}  \n", mem).as_str())
+        }
+
+        doc.push_str("\n");
+    }
+
+    doc
+}
+
 /// Generates the markdown documentation for the methods of a class
 ///
 /// # Arguments
 ///
 /// * `methods` - The vector of class methods to be documented
 pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
-    let mut doc = "## Methods\n\n".to_string();
+    let mut doc = String::new();
+
+    if methods.len() > 0 {
+        doc.push_str("## Methods\n\n");
+    } else {
+        doc.push_str("## No methods in this class\n\n");
+
+        return doc;
+    }
 
     for member in methods {
         if member.line_num != "" {
@@ -197,12 +246,13 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
             doc.push_str(format!("### {}\n\n", member.name).as_str());
         }
 
+        doc.push_str(format!("+ Description: {}  \n", member.description).as_str());
+        doc.push_str(format!("+ Access: {}  \n", member.privacy.trim()).as_str());
+
         for mem in member.modifiers {
-            doc.push_str("+ Modifier: ");
+            doc.push_str("+ Modifiers: ");
             doc.push_str(format!("{}  \n", mem).as_str())
         }
-        doc.push_str(format!("+ privacy: {}  \n", member.privacy.trim()).as_str());
-        doc.push_str(format!("+ description: {}  \n", member.description).as_str());
 
         for exception in member.exceptions {
             doc.push_str(
@@ -250,6 +300,7 @@ pub fn generate_markdown(proj: Project, dest: &str) {
         let mut file = File::create(name).unwrap();
 
         let mut doc = gen_class_docs(class.clone());
+        doc.push_str(gen_var_docs(class.variables, class.file_path.clone()).as_str());
         doc.push_str(gen_method_docs(class.methods, class.file_path).as_str());
         file.write(doc.as_str().as_bytes())
             .expect("Not able to write to file");

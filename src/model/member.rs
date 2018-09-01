@@ -1,6 +1,7 @@
 #[derive(Debug)]
 /// Struct representing member variable data contained in javadoc and declaration
 pub struct Member {
+    pub line_num: String,
     pub desc: String,
     pub modifiers: Vec<String>,
     pub access: String,
@@ -11,6 +12,7 @@ pub struct Member {
 impl Member {
     pub fn clone(&self) -> Member {
         Member {
+            line_num: self.line_num.clone(),
             desc: self.desc.clone(),
             access: self.access.clone(),
             name: self.name.clone(),
@@ -20,6 +22,7 @@ impl Member {
     }
     pub fn new() -> Member {
         Member {
+            line_num: String::new(),
             desc: String::new(),
             access: String::new(),
             name: String::new(),
