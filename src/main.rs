@@ -18,8 +18,8 @@ use threadpool::ThreadPool;
 
 use model::model::Class;
 use model::model::Interface;
-use model::model::Method;
 use model::model::Member;
+use model::model::Method;
 use model::model::Project;
 use parse::parse::parse_file;
 
