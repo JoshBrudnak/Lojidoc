@@ -76,3 +76,4 @@ $ lojidoc ~/Project/src/java/ -l -s
 | --------- | -------------------------------------------------------------- |
 | c <URL>   | Add the git repository url of the project to the documentation |
 | d <FILE>  | Sets the destination directory of the created markdown files   |
+| b <FILE>  | Create a mdbook using the generated documentation              |

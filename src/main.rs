@@ -1,10 +1,16 @@
 extern crate clap;
+extern crate fs_extra;
+extern crate mdbook;
+
 extern crate colored;
 extern crate threadpool;
 
 mod grammar;
 mod model;
 mod parse;
+
+use mdbook::config::Config;
+use mdbook::MDBook;
 
 use clap::App;
 use clap::Arg;
@@ -66,6 +72,38 @@ pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
     }
 
     files.clone()
+}
+
+/// Traverses the file structure to find all java files for parsing.
+///
+/// # Arguments
+///
+/// * `start_dir` - The directory to start looking for java files in.
+pub fn find_gen_files(gen_dir: &Path) -> Vec<String> {
+    let mut files: Vec<String> = Vec::new();
+    let file_dir = fs::read_dir(gen_dir);
+
+    if file_dir.is_ok() {
+        for f in file_dir.unwrap() {
+            if f.is_ok() {
+                let p = f.unwrap().path();
+
+                if p.is_file() {
+                    let file = p.as_path().file_name().unwrap().to_str().unwrap();
+                    let line_vec: Vec<&str> = file.split(".").collect::<Vec<&str>>();
+                    let l_index = line_vec.len() - 1;
+
+                    if line_vec[l_index].contains("md") {
+                        files.push(line_vec[0].to_string());
+                    }
+                }
+            }
+        }
+    } else {
+        println!("Generated directory read error: {:?}", gen_dir);
+    }
+
+    files
 }
 
 /// Generates the markdown documentation for a class
@@ -207,7 +245,12 @@ pub fn gen_var_docs(variables: Vec<Member>, path: String) -> String {
         if member.line_num != "" {
             let mut file_path = path.clone();
             file_path.push_str(format!("#L{}", member.line_num).as_str());
-            doc.push_str(format!("### {} {} [[src]]({})\n\n", member.var_type, member.name, file_path).as_str());
+            doc.push_str(
+                format!(
+                    "### {} {} [[src]]({})\n\n",
+                    member.var_type, member.name, file_path
+                ).as_str(),
+            );
         } else {
             doc.push_str(format!("### {} {}\n\n", member.var_type, member.name).as_str());
         }
@@ -256,60 +299,60 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
 
     for member in methods {
         if member.name != String::from("") {
-        if member.line_num != "" {
-            let mut file_path = path.clone();
-            file_path.push_str(format!("#L{}", member.line_num).as_str());
-            doc.push_str(format!("### {} [[src]]({})\n\n", member.name, file_path).as_str());
-        } else {
-            doc.push_str(format!("### {}\n\n", member.name).as_str());
-        }
-
-        doc.push_str(format!("+ Description: {}  \n", member.description).as_str());
-
-        if member.privacy == "" {
-            doc.push_str("+ Access: package-private  \n");
-        } else {
-            doc.push_str(format!("+ Access: {}  \n", member.privacy).as_str());
-        }
-
-        if member.modifiers.len() > 0 {
-            doc.push_str("+ Modifiers: ");
-
-            for mem in member.modifiers {
-                doc.push_str(format!("{} ", mem).as_str())
+            if member.line_num != "" {
+                let mut file_path = path.clone();
+                file_path.push_str(format!("#L{}", member.line_num).as_str());
+                doc.push_str(format!("### {} [[src]]({})\n\n", member.name, file_path).as_str());
+            } else {
+                doc.push_str(format!("### {}\n\n", member.name).as_str());
             }
 
-            doc.push_str("\n");
-        }
+            doc.push_str(format!("+ Description: {}  \n", member.description).as_str());
 
-        for exception in member.exceptions {
-            doc.push_str(
-                format!(
-                    "+ Throws {}: {}  \n",
-                    exception.exception_type, exception.desc
-                ).as_str(),
-            );
-        }
-        doc.push_str(format!("+ return: {}  \n\n", member.return_type).as_str());
+            if member.privacy == "" {
+                doc.push_str("+ Access: package-private  \n");
+            } else {
+                doc.push_str(format!("+ Access: {}  \n", member.privacy).as_str());
+            }
 
-        if member.parameters.len() > 0 {
-            doc.push_str("| Name | Type | Description |  \n");
-            doc.push_str("| ----- | ----- | ----- |  \n");
-        } else {
-            doc.push_str("This method has no parameters.  \n");
-        }
+            if member.modifiers.len() > 0 {
+                doc.push_str("+ Modifiers: ");
 
-        for param in member.parameters {
-            doc.push_str(
-                format!(
-                    "| {} | {} | {} |  \n",
-                    param.name, param.var_type, param.desc
-                ).as_str(),
-            );
-        }
+                for mem in member.modifiers {
+                    doc.push_str(format!("{} ", mem).as_str())
+                }
 
-        doc.push_str("\n\n");
-    }
+                doc.push_str("\n");
+            }
+
+            for exception in member.exceptions {
+                doc.push_str(
+                    format!(
+                        "+ Throws {}: {}  \n",
+                        exception.exception_type, exception.desc
+                    ).as_str(),
+                );
+            }
+            doc.push_str(format!("+ return: {}  \n\n", member.return_type).as_str());
+
+            if member.parameters.len() > 0 {
+                doc.push_str("| Name | Type | Description |  \n");
+                doc.push_str("| ----- | ----- | ----- |  \n");
+            } else {
+                doc.push_str("This method has no parameters.  \n");
+            }
+
+            for param in member.parameters {
+                doc.push_str(
+                    format!(
+                        "| {} | {} | {} |  \n",
+                        param.name, param.var_type, param.desc
+                    ).as_str(),
+                );
+            }
+
+            doc.push_str("\n\n");
+        }
     }
 
     doc
@@ -323,16 +366,25 @@ pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
 /// * `class` - The class struct containing the java documentation data
 /// * `dest` - The file path where the markdown file will be saved
 /// * `context` - The project context e.g. `github.com/user/repo`
-pub fn generate_markdown(proj: Project, dest: &str) {
+pub fn generate_markdown(proj: Project, dest: &str, book: bool) {
     for mut class in proj.classes {
         let name = format!("{}/{}.{}", dest, class.class_name, "md");
         let mut file = File::create(name).unwrap();
+
 
         let mut doc = gen_class_docs(class.clone());
         doc.push_str(gen_var_docs(class.variables, class.file_path.clone()).as_str());
         doc.push_str(gen_method_docs(class.methods, class.file_path).as_str());
         file.write(doc.as_str().as_bytes())
             .expect("Not able to write to file");
+
+        if book {
+            let name = format!("./markdown-book/src/{}.{}", class.class_name, "md");
+            let mut file = File::create(name).unwrap();
+
+            file.write(doc.as_str().as_bytes())
+                .expect("Not able to write to file");
+        }
 
         println!("{}.{} was created", class.class_name, "md");
     }
@@ -430,7 +482,7 @@ pub fn resolve_context(path: PathBuf, context: &String) -> String {
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
-pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
+pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String, book: bool) {
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
@@ -443,7 +495,7 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
         }
     }
 
-    generate_markdown(project, dest.as_str());
+    generate_markdown(project, dest.as_str(), book);
     println!(
         "\nDocumentation finished. Generated {} markdown files.",
         file_paths.len()
@@ -458,7 +510,7 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String) {
 /// * `dest` - The file path where the markdown will be saved
 /// * `context` - The project context e.g. `github.com/user/repo`
 /// * `verbose` - Whether the program will output verbose logging
-pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool) {
+pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool, book: bool) {
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
@@ -476,7 +528,7 @@ pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, 
         }
     }
 
-    generate_markdown(project, dest.as_str());
+    generate_markdown(project, dest.as_str(), book);
     println!(
         "\nDocumentation finished. Generated {} markdown files.",
         file_paths.len()
@@ -489,7 +541,7 @@ pub fn document_single(file_paths: Vec<PathBuf>, dest: String, context: String, 
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
-pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool) {
+pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose: bool, book: bool) {
     let files = Arc::new(file_paths);
     let size = files.len();
     println!("{}", size);
@@ -525,7 +577,7 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose
                 }
             }
 
-            generate_markdown(project, new_dest.as_str());
+            generate_markdown(project, new_dest.as_str(), book);
         });
     }
 
@@ -535,6 +587,33 @@ pub fn document(file_paths: Vec<PathBuf>, dest: String, context: String, verbose
         "\nDocumentation finished. Generated {} markdown files.",
         files.len()
     );
+}
+
+pub fn gen_md_book(gen_dir: String) {
+    let name = "./markdown-book/src/SUMMARY.md";
+    let res_file = File::create(name);
+    let files = find_gen_files(&PathBuf::from(gen_dir.as_str()));
+    let mut doc = String::new();
+
+    if res_file.is_ok() {
+        let mut file = res_file.unwrap();
+
+        for f in files {
+            let file_path = format!("./{}.md", f.clone());
+            doc.push_str(format!("- [{}]({})  \n", f, file_path).as_str());
+
+        }
+
+        file.write(doc.as_str().as_bytes())
+            .expect("Not able to write to file");
+
+        let md = MDBook::load("./markdown-book").expect("Unable to load the book");
+        md.build().expect("Building failed");
+
+        println!("Generated the markdown book");
+    } else {
+        println!("Error creating file: {:?}", res_file);
+    }
 }
 
 fn main() {
@@ -553,6 +632,12 @@ fn main() {
                 .help("Set the context path of the project")
                 .value_name("FILE")
                 .short("c"),
+        ).arg(
+            Arg::with_name("book")
+                .value_name("FILE")
+                .required(false)
+                .short("b")
+                .help("Use mdbook to create a book for your generated documentation"),
         ).arg(
             Arg::with_name("lint")
                 .help("Check a java project for incorrent and missing javadocs")
@@ -581,7 +666,9 @@ fn main() {
         .value_of("destination")
         .unwrap_or("./generated/")
         .to_string();
+
     let context = matches.value_of("context").unwrap_or("").to_string();
+    let book = matches.value_of("book").unwrap_or("").to_string();
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
     let single_thread = matches.is_present("single_thread");
     let lint = matches.is_present("lint");
@@ -590,13 +677,34 @@ fn main() {
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
     println!("\nGenerating documentation from {}\n", dir);
 
+
+
     if file_paths.len() > 0 {
-        if single_thread {
-            document_single(file_paths, dest, context, verbose);
-        } else if lint {
-            lint_javadoc(file_paths, dest);
+        if book != "" {
+            let mut cfg = Config::default();
+            cfg.book.title = Some(book.clone());
+
+            let init_res = MDBook::init("./markdown-book").with_config(cfg).build();
+
+            if !init_res.is_ok() {
+                println!("Error initializing markdown book");
+            }
+        }
+
+        if single_thread && book != "" {
+            document_single(file_paths, dest.clone(), context, verbose, true);
+        } else if single_thread && book == "" {
+            document_single(file_paths, dest.clone(), context, verbose, false);
+        } else if lint && book != "" {
+            lint_javadoc(file_paths, dest.clone(), true);
+        } else if book != "" {
+            document(file_paths, dest.clone(), context, verbose, true);
         } else {
-            document(file_paths, dest, context, verbose);
+            document(file_paths, dest.clone(), context, verbose, false);
+        }
+
+        if book != "" {
+            gen_md_book(dest);
         }
     } else {
         println!("No java files found");
