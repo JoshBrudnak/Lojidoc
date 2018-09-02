@@ -18,8 +18,6 @@ travis-ci = { repository = "JoshBrudnak/Lojidoc" }
 
 [dependencies]
 threadpool = "1.7.1"
-lazy_static = "1.0.1"
 mdbook = "0.2.1"
-fs_extra = "0.1.0"
 clap = "2.32"
 colored = "1.6"
