@@ -169,44 +169,80 @@ pub mod parse {
         }
     }
 
-    fn get_method(gram_parts: Vec<Stream>, _java_doc: &Doc) -> Method {
+    /// Handles token streams for methods and returns a `Method` struct
+    /// Containing the methods information from it's declaration
+    ///
+    /// # Arguments
+    ///
+    /// * `gram_parts` - A vector of tokens from the method's declaration
+    /// * `_java_doc` - The java doc struct with the documentation for the method
+    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc) -> Method {
         let mut method = Method::new();
         let mut exception = false;
         let mut method_name = false;
+        let mut param_name = false;
+        let mut param_type = String::new();
 
         for i in 0..gram_parts.len() {
             match gram_parts[i].clone() {
                 Stream::Variable(var) => {
                     if exception {
-                        if _java_doc.exceptions.len() > 0 {
+                        if java_doc.exceptions.len() > 0 {
                             method.add_exception(Exception {
-                                desc: _java_doc.exceptions[0].clone().desc,
+                                desc: java_doc.exceptions[0].clone().desc,
                                 exception_type: var,
                             });
                         }
                     } else if method_name {
                         method.ch_method_name(var);
                         method_name = false;
+                    } else if param_name {
+                        method.add_param(Param {
+                            var_type: param_type.clone(),
+                            name: var,
+                            desc: String::new(),
+                        });
                     } else if method.name == "" {
                         method.ch_return_type(var);
                         method_name = true;
                     }
                 }
+                Stream::Type(key) => {
+                    param_type = key;
+                    param_name = true;
+                }
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
                 Stream::Exception => exception = true,
                 _ => {
-                    /*
                     println!("Method pattern not supported");
+                    println!("{:?}", gram_parts[i]);
                     println!("{:?}", gram_parts);
-                    */
                 }
             }
         }
 
+        if java_doc.return_desc != "" {
+            method.ch_return_type(java_doc.return_desc.clone());
+        }
+
+        if java_doc.description != "" {
+            method.ch_description(java_doc.description.clone());
+        }
+
+        let n_params: Vec<Param> =
+            match_params(&mut method, &java_doc.params, &mut String::new(), false);
+        method.ch_params(n_params);
+
         method
     }
 
+    /// Handles token streams for member variables and returns a `Member` struct
+    /// Containing the member variable's data
+    ///
+    /// # Arguments
+    ///
+    /// * `gram_parts` - A vector of tokens in the member variable expression
     fn get_var(gram_parts: Vec<Stream>) -> Member {
         let mut member = Member::new();
         let mut member_name = false;
@@ -218,28 +254,25 @@ pub mod parse {
                         return member;
                     } else if member_name {
                         member.ch_name(var);
-                        member_name = false;
-                    } else if member.name == "" {
+                        println!("{:?}", member);
+                        return member;
+                    } else {
                         member.ch_type(var);
                         member_name = true;
                     }
                 }
+                Stream::Type(key) => {
+                    member.ch_type(key);
+                    member_name = true;
+                }
                 Stream::Access(key) => member.ch_access(key),
                 Stream::Modifier(key) => member.add_modifier(key),
-                _ => {
-                    /*
-                    println!("Member variable pattern not supported");
-                    println!("{:?}", gram_parts[i]);
-                    println!("{:?}", gram_parts);
-                    */
-                }
+                _ => println!("Member variable pattern not supported"),
             }
         }
 
         member
     }
-
-    /*
 
     fn match_params(
         method: &mut Method,
@@ -290,7 +323,6 @@ pub mod parse {
 
         new_param
     }
-    */
 
     macro_rules! is_keyword {
         ($w:expr, $k:expr) => {{
@@ -313,7 +345,7 @@ pub mod parse {
                 tokens.push(Token::Keyword(curr_token.to_string()));
             } else if is_keyword!(curr_token, jdoc_keywords) {
                 tokens.push(Token::Keyword(curr_token.to_string()));
-            } else if !curr_token.contains("@") {
+            } else {
                 tokens.push(Token::Symbol(curr_token.to_string()));
             }
         }
@@ -326,9 +358,7 @@ pub mod parse {
         let mut blob = content.chars();
 
         loop {
-            let ch_res = blob.next();
-
-            match ch_res {
+            match blob.next() {
                 Some(ch) => match ch {
                     ' ' | '\t' | '\n' => {
                         if block_depth < 2 {
@@ -346,28 +376,28 @@ pub mod parse {
                     ';' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
-                            tokens.push(Token::Expression_end(";".to_string()));
+                            tokens.push(Token::ExpressionEnd(";".to_string()));
                         }
                         curr_token = String::new();
                     }
                     '(' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
-                            tokens.push(Token::Param_start);
+                            tokens.push(Token::ParamStart);
                         }
                         curr_token = String::new();
                     }
                     ')' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
-                            tokens.push(Token::Param_end);
+                            tokens.push(Token::ParamEnd);
                         }
                         curr_token = String::new();
                     }
                     '{' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
-                            tokens.push(Token::Expression_end("{".to_string()));
+                            tokens.push(Token::ExpressionEnd("{".to_string()));
                         }
                         curr_token = String::new();
                         block_depth = block_depth + 1;
@@ -417,6 +447,8 @@ pub mod parse {
     }
 
     pub fn construct_ast(tokens: Vec<Token>) -> Class {
+        let mut annotation = false;
+        let mut ignore = false;
         let mut class = Class::new();
         let mut in_object = false;
         let mut parse_state = ParseState::new();
@@ -430,70 +462,89 @@ pub mod parse {
         let mut gram_parts: Vec<Stream> = Vec::new();
 
         for token in tokens.clone() {
+            if ignore {
+                match token.clone() {
+                    Token::ParamEnd => ignore = false,
+                    _ => continue,
+                }
+
+                continue;
+            }
+
             match token.clone() {
-                Token::Keyword(key) => match key.as_ref() {
-                    "class" => {
-                        if !doc && !comment {
-                            gram_parts.push(Stream::Object("class".to_string()));
-                            parse_state.ch_class(true);
-                        }
-                        in_object = true;
-                    }
-                    "interface" => {
-                        if !doc && !comment {
-                            gram_parts.push(Stream::Object("interface".to_string()));
-                            parse_state.ch_interface(true);
-                        }
-                        in_object = true;
-                    }
-                    "package" => gram_parts.push(Stream::Package),
-                    "throws" => gram_parts.push(Stream::Exception),
-                    "extends" => gram_parts.push(Stream::Parent),
-                    "implements" => gram_parts.push(Stream::Implement),
-                    "import" => gram_parts.push(Stream::Import),
-                    "enum" => gram_parts.push(Stream::Object("enum".to_string())),
-                    _ => {
-                        if access_mod_match!(token.clone()) {
-                            gram_parts.push(Stream::Access(key.to_string()));
-                        } else if modifier_match!(token.clone()) {
-                            gram_parts.push(Stream::Modifier(key.to_string()));
-                        } else if is_keyword!(key, get_jdoc_keywords()) {
-                            doc_tokens.push(JdocToken::Keyword(key.clone()));
-                        } else if doc {
-                            doc_tokens.push(JdocToken::Symbol(key.clone()));
-                        } else if !comment && !doc {
-                            println!("Keyword not supported: {}", key);
-                        }
-                    }
-                },
-                Token::Symbol(word) => match word.as_ref() {
-                    "/**" => doc = true,
-                    "*/" => {
-                        if doc {
-                            jdoc = get_doc(&doc_tokens);
-                            println!("{:?}", jdoc);
-                            parse_state = ParseState::new();
-                            doc_tokens.clear();
-                            gram_parts.clear();
-                        }
-                        doc = false;
-                        comment = false;
-                    }
-                    "//" => comment = true,
-                    "/*" => comment = true,
-                    _ => {
-                        if doc {
-                            if is_keyword!(word, get_jdoc_keywords()) {
-                                doc_tokens.push(JdocToken::Keyword(word.clone()));
-                            } else {
-                                doc_tokens.push(JdocToken::Symbol(word.clone()));
+                Token::Keyword(key) => {
+                    match key.as_ref() {
+                        "class" => {
+                            if !doc && !comment {
+                                gram_parts.push(Stream::Object("class".to_string()));
+                                parse_state.ch_class(true);
                             }
-                        } else if !comment {
-                            symbols.push(word.to_string());
-                            gram_parts.push(Stream::Variable(word));
+                            in_object = true;
+                        }
+                        "interface" => {
+                            if !doc && !comment {
+                                gram_parts.push(Stream::Object("interface".to_string()));
+                                parse_state.ch_interface(true);
+                            }
+                            in_object = true;
+                        }
+                        "package" => gram_parts.push(Stream::Package),
+                        "throws" => gram_parts.push(Stream::Exception),
+                        "extends" => gram_parts.push(Stream::Parent),
+                        "implements" => gram_parts.push(Stream::Implement),
+                        "import" => gram_parts.push(Stream::Import),
+                        "enum" => gram_parts.push(Stream::Object("enum".to_string())),
+                        _ => {
+                            if access_mod_match!(token.clone()) {
+                                gram_parts.push(Stream::Access(key.to_string()));
+                            } else if modifier_match!(token.clone()) {
+                                gram_parts.push(Stream::Modifier(key.to_string()));
+                            } else if is_keyword!(key, get_jdoc_keywords()) {
+                                doc_tokens.push(JdocToken::Keyword(key.clone()));
+                            } else if doc {
+                                doc_tokens.push(JdocToken::Symbol(key.clone()));
+                            } else if !comment && !doc {
+                                println!("Keyword not supported: {}", key);
+                            }
                         }
                     }
-                },
+                    annotation = false;
+                }
+                Token::Symbol(word) => {
+                    match word.as_ref() {
+                        "/**" => doc = true,
+                        "*/" => {
+                            if doc {
+                                jdoc = get_doc(&doc_tokens);
+                                println!("{:?}", jdoc);
+                                parse_state = ParseState::new();
+                                doc_tokens.clear();
+                                gram_parts.clear();
+                            }
+                            doc = false;
+                            comment = false;
+                        }
+                        "//" => comment = true,
+                        "/*" => comment = true,
+                        _ => {
+                            if doc {
+                                if is_keyword!(word, get_jdoc_keywords()) {
+                                    doc_tokens.push(JdocToken::Keyword(word.clone()));
+                                } else {
+                                    doc_tokens.push(JdocToken::Symbol(word.clone()));
+                                }
+                            } else if word.contains("@") && !doc {
+                                annotation = true;
+                                continue;
+                            } else if !comment {
+                                symbols.push(word.to_string());
+                                gram_parts.push(Stream::Variable(word));
+                            }
+                        }
+                    }
+
+                    annotation = false;
+                }
                 Token::Join => {
                     if symbols.len() > 1 {
                         let temp_sym = symbols.clone();
@@ -503,18 +554,23 @@ pub mod parse {
 
                     symbols.clear();
                 }
-                Token::Param_start => {
-                    let temp_sym = symbols.clone();
-                    if temp_sym.len() == 1 {
-                        gram_parts.push(Stream::Type(temp_sym[0].clone()));
-                    } else if temp_sym.len() > 1 {
-                        gram_parts.push(Stream::Type(temp_sym[0].clone()));
-                        gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                Token::ParamStart => {
+                    if annotation {
+                        ignore = true;
+                        annotation = false;
+                    } else {
+                        let temp_sym = symbols.clone();
+                        if temp_sym.len() == 1 {
+                            gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                        } else if temp_sym.len() > 1 {
+                            gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                            gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                        }
                     }
 
                     symbols.clear();
                 }
-                Token::Param_end => {
+                Token::ParamEnd => {
                     let temp_sym = symbols.clone();
                     if symbols.len() == 1 {
                         method.ch_method_name(temp_sym[0].clone());
@@ -524,7 +580,7 @@ pub mod parse {
                     }
                     symbols.clear();
                 }
-                Token::Expression_end(end) => {
+                Token::ExpressionEnd(end) => {
                     let mut temp_gram = gram_parts.clone();
                     match end.as_ref() {
                         ";" => {
