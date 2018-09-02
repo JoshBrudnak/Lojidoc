@@ -55,6 +55,7 @@ pub mod parse {
                             }
                             JdocState::Author => author = new_desc,
                             JdocState::Deprecated => deprecated = new_desc,
+                            JdocState::Since => version = new_desc,
                             JdocState::Exception => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
@@ -114,7 +115,7 @@ pub mod parse {
         }
     }
 
-    fn get_object(gram_parts: Vec<Stream>, _java_doc: &Doc, class: &mut Class) {
+    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, class: &mut Class) {
         let mut implement = false;
         let mut exception = false;
         let mut parent = false;
@@ -166,6 +167,18 @@ pub mod parse {
                 }
                 _ => println!("Class pattern not supported {:?}", gram_parts[i]),
             }
+        }
+
+        if java_doc.description != "" {
+            class.ch_description(java_doc.description.clone());
+        }
+
+        if java_doc.author != "" {
+            class.ch_author(java_doc.author.clone());
+        }
+
+        if java_doc.version != "" {
+            class.ch_version(java_doc.version.clone());
         }
     }
 
@@ -485,7 +498,6 @@ pub mod parse {
                             in_object = true;
                         }
                         "package" => {
-                            println!("{}", comment_buf);
                             if comment_buf != "" {
                                 class.ch_license(comment_buf.clone());
                             }
@@ -672,3 +684,6 @@ pub mod parse {
         }
     }
 }
+
+#[cfg(test)]
+mod test;

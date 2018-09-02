@@ -25,7 +25,7 @@ pub mod grammar {
         }
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq)]
     pub enum Token {
         Symbol(String),
         Keyword(String),

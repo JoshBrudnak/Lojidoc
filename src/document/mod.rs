@@ -124,12 +124,18 @@ pub mod document {
             doc.push_str("<br/>");
         }
 
-        doc.push_str(format!("privacy: {}  \n", class.access.trim()).as_str());
+        doc.push_str(format!("Access: {}  \n", class.access.trim()).as_str());
         if class.description.as_str() != "" {
-            doc.push_str(format!("description: {}  \n", class.description.trim()).as_str());
+            doc.push_str(format!("Description: {}  \n", class.description.trim()).as_str());
+        }
+        if class.author != "" {
+            doc.push_str(format!("Author: {}  \n", class.author).as_str());
+        }
+        if class.version != "" {
+            doc.push_str(format!("Since version: {}  \n", class.version).as_str());
         }
         if class.parent != "" {
-            doc.push_str(format!("parent class: {}  \n", class.parent).as_str());
+            doc.push_str(format!("Parent class: {}  \n", class.parent).as_str());
         }
 
         if class.interfaces.len() > 0 {
