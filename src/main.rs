@@ -101,7 +101,11 @@ pub fn document(
                 if (i * 4) + j < size {
                     let mut file = file_cp[(i * 4) + j].clone();
                     let mut class = parse_file(&file, verbose);
-                    let m_context = resolve_context(file, &new_context);
+                    let mut m_context = String::new();
+
+                    if new_context != "" {
+                        m_context = resolve_context(file, &new_context);
+                    }
                     class.ch_file_path(m_context);
 
                     if !class.is_class {

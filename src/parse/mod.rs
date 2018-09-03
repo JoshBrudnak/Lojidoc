@@ -22,6 +22,7 @@ pub mod parse {
         let mut parameters: Vec<Param> = Vec::new();
         let mut author = String::new();
         let mut version = String::new();
+        let mut link = String::new();
         let mut deprecated = String::new();
         let mut exceptions: Vec<Exception> = Vec::new();
         let mut state = JdocState::Desc;
@@ -56,6 +57,8 @@ pub mod parse {
                             JdocState::Author => author = new_desc,
                             JdocState::Deprecated => deprecated = new_desc,
                             JdocState::Since => version = new_desc,
+                            JdocState::Link => link = new_desc,
+                            JdocState::See => link = new_desc,
                             JdocState::Exception => {
                                 let word_parts: Vec<&str> = new_desc.split(" ").collect();
 
@@ -215,6 +218,9 @@ pub mod parse {
                             name: var,
                             desc: String::new(),
                         });
+
+                        param_type = String::new();
+                        param_name = false;
                     } else if method.name == "" {
                         method.ch_return_type(var);
                         method_name = true;
@@ -468,6 +474,12 @@ pub mod parse {
         };
     }
 
+    /// Constucts a syntax tree based on the stream of token from the lexing
+    /// Outputs a Class struct containing all the data for a java class
+    ///
+    /// # Arguments
+    ///
+    /// * `tokens` - The list of tokens from the lexer
     pub fn construct_ast(tokens: Vec<Token>) -> Class {
         let mut annotation = false;
         let mut ignore = false;
@@ -591,8 +603,8 @@ pub mod parse {
                 Token::Join => {
                     if symbols.len() > 1 {
                         let temp_sym = symbols.clone();
-                        gram_parts.push(Stream::Type(temp_sym[0].clone()));
-                        gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                        gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
+                        gram_parts.push(Stream::Variable(temp_sym[temp_sym.len() - 1].clone()));
                     }
 
                     if comment {
@@ -608,9 +620,9 @@ pub mod parse {
                     } else {
                         let temp_sym = symbols.clone();
                         if temp_sym.len() == 1 {
-                            gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                            gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
                         } else if temp_sym.len() > 1 {
-                            gram_parts.push(Stream::Type(temp_sym[0].clone()));
+                            gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
                             gram_parts.push(Stream::Variable(temp_sym[1].clone()));
                         }
                     }
@@ -650,12 +662,20 @@ pub mod parse {
                                             Stream::Variable(key) => class.ch_package_name(key),
                                             _ => println!("Pattern not supported"),
                                         },
-                                        _ => class.add_variable(get_var(temp_gram, line_num.clone())),
+                                        _ => {
+                                            class.add_variable(get_var(temp_gram, line_num.clone()))
+                                        }
                                     }
                                 }
                             } else {
                                 if class.is_class {
                                     class.add_variable(get_var(temp_gram, line_num.clone()));
+                                } else {
+                                    class.add_method(get_method(
+                                        temp_gram,
+                                        &jdoc,
+                                        line_num.clone(),
+                                    ));
                                 }
                             }
                         }
@@ -678,7 +698,8 @@ pub mod parse {
                     parse_state = ParseState::new();
                     jdoc = Doc::new();
                     gram_parts.clear();
-                },
+                    symbols.clear();
+                }
                 Token::LineNumber(num) => line_num = num,
             }
         }

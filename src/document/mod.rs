@@ -126,7 +126,7 @@ pub mod document {
 
         doc.push_str(format!("Access: {}  \n", class.access.trim()).as_str());
         if class.description.as_str() != "" {
-            doc.push_str(format!("Description: {}  \n", class.description.trim()).as_str());
+            doc.push_str(format!("Description:  \n > {}  \n\n", class.description.trim()).as_str());
         }
         if class.author != "" {
             doc.push_str(format!("Author: {}  \n", class.author).as_str());
@@ -234,17 +234,17 @@ pub mod document {
         }
 
         for member in variables {
-            if member.line_num != "" {
+            if path != "" {
                 let mut file_path = path.clone();
                 file_path.push_str(format!("#L{}", member.line_num).as_str());
                 doc.push_str(
                     format!(
-                        "### {} {} [[src]]({})\n\n",
+                        "#### {} {} [[src]]({})\n\n",
                         member.var_type, member.name, file_path
                     ).as_str(),
                 );
             } else {
-                doc.push_str(format!("### {} {}\n\n", member.var_type, member.name).as_str());
+                doc.push_str(format!("#### {} {}\n\n", member.var_type, member.name).as_str());
             }
 
             if member.desc != "" {
@@ -291,7 +291,7 @@ pub mod document {
 
         for member in methods {
             if member.name != String::from("") {
-                if member.line_num != "" {
+                if path != "" {
                     let mut file_path = path.clone();
                     file_path.push_str(format!("#L{}", member.line_num).as_str());
                     doc.push_str(
