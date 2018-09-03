@@ -227,8 +227,13 @@ pub mod parse {
                     }
                 }
                 Stream::Type(key) => {
-                    param_type = key;
-                    param_name = true;
+                    if method.return_type == "" {
+                        method.ch_return_type(key);
+                        method_name = true;
+                    } else {
+                        param_type = key;
+                        param_name = true;
+                    }
                 }
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
@@ -587,7 +592,6 @@ pub mod parse {
                                 continue;
                             } else if !comment {
                                 symbols.push(word.to_string());
-                                gram_parts.push(Stream::Variable(word.clone()));
                             }
                         }
                     }
@@ -620,10 +624,11 @@ pub mod parse {
                     } else {
                         let temp_sym = symbols.clone();
                         if temp_sym.len() == 1 {
-                            gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
+                            gram_parts
+                                .push(Stream::Variable(temp_sym[..temp_sym.len() - 1].join(" ")));
                         } else if temp_sym.len() > 1 {
                             gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
-                            gram_parts.push(Stream::Variable(temp_sym[1].clone()));
+                            gram_parts.push(Stream::Variable(temp_sym[temp_sym.len() - 1].clone()));
                         }
                     }
 
@@ -638,17 +643,25 @@ pub mod parse {
                     if symbols.len() == 1 {
                         method.ch_method_name(temp_sym[0].clone());
                     } else if symbols.len() > 1 {
-                        method.ch_return_type(temp_sym[0].clone());
-                        method.ch_method_name(temp_sym[1].clone());
+                        gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
+                        gram_parts.push(Stream::Variable(temp_sym[temp_sym.len() - 1].clone()));
                     }
-                    symbols.clear();
 
                     if comment {
                         comment_buf.push_str(")");
                     }
+                    symbols.clear();
                 }
                 Token::ExpressionEnd(end) => {
+                    // For any symbols not included add them to the stream for parsing
+                    if symbols.len() > 0 {
+                        for sym in symbols.clone() {
+                            gram_parts.push(Stream::Variable(sym));
+                        }
+                    }
+
                     let mut temp_gram = gram_parts.clone();
+
                     match end.as_ref() {
                         ";" => {
                             if !in_object {

@@ -33,13 +33,21 @@ pub mod document {
     /// * `start_dir` - The directory to start looking for java files in.
     pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
         let mut files: Vec<PathBuf> = Vec::new();
+
+        // If the start directory is a single file return only that path
+        if start_dir.is_file() {
+            files.push(start_dir.to_path_buf());
+            return files;
+        }
+
         let file_dir = fs::read_dir(start_dir);
 
         if !file_dir.is_ok() {
             println!("Incorrect file path");
-            return files.clone();
+            return files;
         }
 
+        // For every file or directory in the current directory find java files
         for f in file_dir.unwrap() {
             let p = f.unwrap().path();
 
