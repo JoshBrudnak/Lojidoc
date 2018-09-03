@@ -81,8 +81,8 @@ pub fn document(
 ) {
     let files = Arc::new(file_paths);
     let size = files.len();
-    println!("{}", size);
     let mut pool_size = size / 4;
+
     if files.len() % 4 != 0 {
         pool_size += 1;
     }
@@ -102,10 +102,8 @@ pub fn document(
                     let mut file = file_cp[(i * 4) + j].clone();
                     let mut class = parse_file(&file, verbose);
                     let m_context = resolve_context(file, &new_context);
+                    class.ch_file_path(m_context);
 
-                    if m_context != "" {
-                        class.ch_file_path(m_context);
-                    }
                     if !class.is_class {
                         project.add_interface(class.to_interface());
                     } else {

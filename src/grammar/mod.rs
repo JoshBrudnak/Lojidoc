@@ -32,6 +32,7 @@ pub mod grammar {
         Join,
         ParamStart,
         ParamEnd,
+        LineNumber(String),
         ExpressionEnd(String),
     }
 
@@ -167,15 +168,6 @@ pub mod grammar {
         }
         pub fn ch_enum(&mut self, value: bool) {
             self.enum_ob = value;
-        }
-        pub fn ch_doc(&mut self, value: bool) {
-            self.doc = value;
-        }
-        pub fn ch_comment(&mut self, value: bool) {
-            self.comment = value;
-        }
-        pub fn ch_doc_ready(&mut self, value: bool) {
-            self.doc_ready = value;
         }
     }
 }

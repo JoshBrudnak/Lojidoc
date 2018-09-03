@@ -72,3 +72,37 @@ fn test_class_lex() {
     assert_eq!(Token::Symbol(String::from("IEnumerable")), tokens[7]);
     assert_eq!(Token::ExpressionEnd(String::from("{")), tokens[8]);
 }
+
+#[test]
+fn test_doc_lex() {
+    let j_inter = "/**\n
+                    * The sample description\n
+                    *\n
+                    * @param args Arguments\n
+                    * @param str A string\n
+                    * @return The value\n
+                    *\n
+                    */\n";
+
+    let tokens = lex_contents(&j_inter.to_string());
+
+    assert_eq!(Token::Symbol(String::from("/**")), tokens[0]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[1]);
+    assert_eq!(Token::Symbol(String::from("The")), tokens[2]);
+    assert_eq!(Token::Symbol(String::from("sample")), tokens[3]);
+    assert_eq!(Token::Symbol(String::from("description")), tokens[4]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[5]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[6]);
+    assert_eq!(Token::Keyword(String::from("@param")), tokens[7]);
+    assert_eq!(Token::Symbol(String::from("args")), tokens[8]);
+    assert_eq!(Token::Symbol(String::from("Arguments")), tokens[9]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[10]);
+    assert_eq!(Token::Keyword(String::from("@param")), tokens[11]);
+    assert_eq!(Token::Symbol(String::from("str")), tokens[12]);
+    assert_eq!(Token::Symbol(String::from("A")), tokens[13]);
+    assert_eq!(Token::Symbol(String::from("string")), tokens[14]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[15]);
+    assert_eq!(Token::Keyword(String::from("@return")), tokens[16]);
+    assert_eq!(Token::Symbol(String::from("The")), tokens[17]);
+    assert_eq!(Token::Symbol(String::from("value")), tokens[18]);
+}

@@ -189,7 +189,7 @@ pub mod parse {
     ///
     /// * `gram_parts` - A vector of tokens from the method's declaration
     /// * `_java_doc` - The java doc struct with the documentation for the method
-    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc) -> Method {
+    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc, line_num: String) -> Method {
         let mut method = Method::new();
         let mut exception = false;
         let mut method_name = false;
@@ -230,6 +230,7 @@ pub mod parse {
                 _ => println!("Method pattern not supported"),
             }
         }
+        method.ch_line_num(line_num);
 
         if java_doc.return_desc != "" {
             method.ch_return_type(java_doc.return_desc.clone());
@@ -252,7 +253,7 @@ pub mod parse {
     /// # Arguments
     ///
     /// * `gram_parts` - A vector of tokens in the member variable expression
-    fn get_var(gram_parts: Vec<Stream>) -> Member {
+    fn get_var(gram_parts: Vec<Stream>, line_num: String) -> Member {
         let mut member = Member::new();
         let mut member_name = false;
 
@@ -278,6 +279,7 @@ pub mod parse {
                 _ => println!("Member variable pattern not supported"),
             }
         }
+        member.ch_line_number(line_num);
 
         member
     }
@@ -290,6 +292,7 @@ pub mod parse {
     ) -> Vec<Param> {
         let params = method.clone_params();
         let mut new_param: Vec<Param> = Vec::new();
+
         for mut param in params {
             let mut found = false;
             for i in 0..jparams.len() {
@@ -363,15 +366,26 @@ pub mod parse {
         let mut tokens: Vec<Token> = Vec::new();
         let mut curr_token = String::new();
         let mut block_depth = 0;
+        let mut line_number = 1;
         let mut blob = content.chars();
 
+        tokens.push(Token::LineNumber(line_number.to_string()));
         loop {
             match blob.next() {
                 Some(ch) => match ch {
-                    ' ' | '\t' | '\n' => {
+                    ' ' | '\t' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                         }
+                        curr_token = String::new();
+                    }
+                    '\n' => {
+                        if block_depth < 2 {
+                            push_token(&curr_token, &mut tokens);
+                        }
+
+                        line_number = line_number + 1;
+                        tokens.push(Token::LineNumber(line_number.to_string()));
                         curr_token = String::new();
                     }
                     ',' => {
@@ -469,6 +483,7 @@ pub mod parse {
         let mut method: Method = Method::new();
         let mut gram_parts: Vec<Stream> = Vec::new();
         let mut comment_buf = String::new();
+        let mut line_num = String::new();
 
         for token in tokens.clone() {
             if ignore {
@@ -635,12 +650,12 @@ pub mod parse {
                                             Stream::Variable(key) => class.ch_package_name(key),
                                             _ => println!("Pattern not supported"),
                                         },
-                                        _ => class.add_variable(get_var(temp_gram)),
+                                        _ => class.add_variable(get_var(temp_gram, line_num.clone())),
                                     }
                                 }
                             } else {
                                 if class.is_class {
-                                    class.add_variable(get_var(temp_gram));
+                                    class.add_variable(get_var(temp_gram, line_num.clone()));
                                 }
                             }
                         }
@@ -648,7 +663,7 @@ pub mod parse {
                             if parse_state.interface || parse_state.class {
                                 get_object(temp_gram.clone(), &jdoc, &mut class);
                             } else {
-                                class.add_method(get_method(temp_gram, &jdoc));
+                                class.add_method(get_method(temp_gram, &jdoc, line_num.clone()));
                             }
                         }
                         _ => {
@@ -663,7 +678,8 @@ pub mod parse {
                     parse_state = ParseState::new();
                     jdoc = Doc::new();
                     gram_parts.clear();
-                }
+                },
+                Token::LineNumber(num) => line_num = num,
             }
         }
 
