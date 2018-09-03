@@ -282,8 +282,15 @@ pub mod parse {
                     }
                 }
                 Stream::Type(key) => {
-                    member.ch_type(key);
-                    member_name = true;
+                    if key.contains("=") {
+                        let parts: Vec<&str> = key.split("=").collect();
+                        member.ch_name(parts[0].to_string());
+
+                        return member;
+                    } else {
+                        member.ch_type(key);
+                        member_name = true;
+                    }
                 }
                 Stream::Access(key) => member.ch_access(key),
                 Stream::Modifier(key) => member.add_modifier(key),
