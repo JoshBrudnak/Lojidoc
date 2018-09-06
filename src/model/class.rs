@@ -133,9 +133,6 @@ impl Class {
     pub fn ch_description(&mut self, value: String) {
         self.description = value;
     }
-    pub fn ch_deprecation(&mut self, value: String) {
-        self.deprecation = value;
-    }
     pub fn ch_parent(&mut self, value: String) {
         self.parent = value;
     }

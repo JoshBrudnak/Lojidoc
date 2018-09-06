@@ -16,6 +16,12 @@ pub mod parse {
     use std::io::Read;
     use std::path::Path;
 
+    /// Handles token streams for javadoc comments and returns a `Doc` struct
+    /// containing the information parsed from the javadoc comment.
+    ///
+    /// # Arguments
+    ///
+    /// * `tokens` - A vector of tokens from the javadoc comment
     fn get_doc(tokens: &Vec<JdocToken>) -> Doc {
         let mut return_str = String::from("");
         let mut desc = String::from("");
@@ -34,7 +40,7 @@ pub mod parse {
                     let new_desc = word_buf.clone();
                     if i != 0 {
                         match state {
-                            JdocState::Jdoc_return => {
+                            JdocState::JdocReturn => {
                                 return_str = new_desc;
                             }
                             JdocState::Param => {
@@ -78,7 +84,7 @@ pub mod parse {
                     }
 
                     match key.as_ref() {
-                        "@return" => state = JdocState::Jdoc_return,
+                        "@return" => state = JdocState::JdocReturn,
                         "@param" => state = JdocState::Param,
                         "@author" => state = JdocState::Author,
                         "@code" => state = JdocState::Code,
@@ -115,9 +121,20 @@ pub mod parse {
             version: version,
             exceptions: exceptions,
             deprecated: deprecated,
+            see: link,
         }
     }
 
+    /// Handles token streams for object declarations and modifies the `Class` struct
+    /// which is passed to the function.
+    ///
+    /// This function is used for class, interface, and enum declarations.
+    ///
+    /// # Arguments
+    ///
+    /// * `gram_parts` - A vector of tokens from the object's declaration
+    /// * `java_doc` - The java doc struct with the documentation for the class
+    /// * `class` - The Class stuct to be modified with the new information
     fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, class: &mut Class) {
         let mut implement = false;
         let mut exception = false;
@@ -727,6 +744,13 @@ pub mod parse {
         class
     }
 
+    /// Root function of the module. Calls the lex and parse functions and returns
+    /// a `Class` struct.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path of the java file
+    /// * `lint` - A bool representing whether the class's javadoc comments should be linted
     pub fn parse_file(path: &Path, _lint: bool) -> Class {
         let file = File::open(path).expect("Could not open file");
         let mut contents = String::new();

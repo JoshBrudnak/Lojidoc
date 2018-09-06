@@ -1,8 +1,8 @@
 [package]
 name = "lojidoc"
-version = "0.1.1"
+version = "0.2.0"
 license = "Apache-2.0"
-description = "A tool for generating markown documentation for java projects."
+description = "A tool for generating documentation for java projects."
 keywords = ["documentation", "java", "javadoc"]
 authors = ["Josh Brudnak <jobrud314@gmail.com>"]
 readme = "README.md"

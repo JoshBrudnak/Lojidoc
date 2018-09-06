@@ -15,6 +15,7 @@ pub mod document {
     use model::model::Project;
     use parse::parse::parse_file;
 
+    /// Finds out whether a file is a java file
     fn is_java_file(file: &str) -> bool {
         let line_vec: Vec<&str> = file.split(".").collect::<Vec<&str>>();
         let l_index = line_vec.len() - 1;

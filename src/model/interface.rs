@@ -19,21 +19,6 @@ pub struct Interface {
 }
 
 impl Interface {
-    pub fn new() -> Interface {
-        Interface {
-            package_name: String::new(),
-            dependencies: Vec::new(),
-            deprecation: String::new(),
-            access: String::new(),
-            file_path: String::new(),
-            version: String::new(),
-            author: String::new(),
-            name: String::new(),
-            description: String::new(),
-            variables: Vec::new(),
-            methods: Vec::new(),
-        }
-    }
     pub fn clone(&mut self) -> Interface {
         let mut new_methods = Vec::new();
         let mut new_variables = Vec::new();
@@ -59,35 +44,5 @@ impl Interface {
             variables: new_variables,
             methods: new_methods,
         }
-    }
-    pub fn ch_access(&mut self, value: String) {
-        self.access = value;
-    }
-    pub fn ch_file_path(&mut self, value: String) {
-        self.file_path = value;
-    }
-    pub fn ch_package_name(&mut self, value: String) {
-        self.package_name = value;
-    }
-    pub fn ch_inter_name(&mut self, value: String) {
-        self.name = value;
-    }
-    pub fn ch_description(&mut self, value: String) {
-        self.description = value;
-    }
-    pub fn ch_deprecation(&mut self, value: String) {
-        self.deprecation = value;
-    }
-    pub fn ch_version(&mut self, value: String) {
-        self.deprecation = value;
-    }
-    pub fn ch_author(&mut self, value: String) {
-        self.author = value;
-    }
-    pub fn add_method(&mut self, value: Method) {
-        self.methods.push(value);
-    }
-    pub fn add_dependency(&mut self, value: String) {
-        self.dependencies.push(value);
     }
 }

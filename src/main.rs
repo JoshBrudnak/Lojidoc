@@ -66,7 +66,7 @@ pub fn document_single(
     );
 }
 
-/// Handles the thread pooling the application
+/// Handles thread pooling the application
 ///
 /// # Arguments
 ///

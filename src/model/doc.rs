@@ -11,6 +11,7 @@ pub struct Doc {
     pub exceptions: Vec<Exception>,
     pub deprecated: String,
     pub return_desc: String,
+    pub see: String,
 }
 
 impl Doc {
@@ -23,15 +24,7 @@ impl Doc {
             version: String::new(),
             exceptions: Vec::new(),
             deprecated: String::new(),
+            see: String::new(),
         }
-    }
-    pub fn clear(&mut self) {
-        self.params = Vec::new();
-        self.description = String::new();
-        self.return_desc = String::new();
-        self.author = String::new();
-        self.version = String::new();
-        self.exceptions = Vec::new();
-        self.deprecated = String::new();
     }
 }

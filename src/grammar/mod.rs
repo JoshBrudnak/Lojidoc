@@ -1,29 +1,7 @@
 #[macro_use]
 pub mod grammar {
-    //! Module that contains grammar
-
-    #[derive(Clone, Debug)]
-    pub struct Ignore {
-        pub is_ignore: bool,
-        pub ignore_token: String,
-    }
-
-    impl Ignore {
-        pub fn new() -> Ignore {
-            Ignore {
-                is_ignore: false,
-                ignore_token: String::new(),
-            }
-        }
-        pub fn set_ignore(&mut self, value: String) {
-            self.is_ignore = true;
-            self.ignore_token = value;
-        }
-        pub fn clear(&mut self) {
-            self.is_ignore = false;
-            self.ignore_token = String::new();
-        }
-    }
+    //! Module that contains grammar used in the lexing and parsing of java code
+    //! Also defines other sets of keywords like javadoc keywords or framework annotations
 
     #[derive(Clone, Debug, PartialEq)]
     pub enum Token {
@@ -105,9 +83,6 @@ pub mod grammar {
         Modifier(String),
         Type(String),
         Variable(String),
-        Word(String),
-        Doc(String),
-        Return_type(String),
     }
 
     #[derive(Clone, Debug)]
@@ -116,10 +91,12 @@ pub mod grammar {
         Symbol(String),
     }
 
+    /// Stores the state of javadoc parsing. Each enum field represents a javadoc
+    /// keyword defined in the `get_jdoc_keywords()` function.
     #[derive(Clone, Debug)]
     pub enum JdocState {
         Desc,
-        Jdoc_return,
+        JdocReturn,
         Param,
         Author,
         Code,
@@ -131,7 +108,6 @@ pub mod grammar {
         Linkplain,
         Literal,
         See,
-        Throws,
         Since,
         SerialData,
         SerialField,
@@ -139,7 +115,7 @@ pub mod grammar {
         Version,
     }
 
-    /// Struct that represents the parsing state
+    /// Struct that represents the parsing state of the high level java declarations
     pub struct ParseState {
         pub class: bool,
         pub interface: bool,
@@ -165,9 +141,6 @@ pub mod grammar {
         }
         pub fn ch_interface(&mut self, value: bool) {
             self.interface = value;
-        }
-        pub fn ch_enum(&mut self, value: bool) {
-            self.enum_ob = value;
         }
     }
 }

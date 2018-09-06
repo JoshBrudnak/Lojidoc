@@ -7,13 +7,6 @@ pub struct Param {
 }
 
 impl Param {
-    pub fn new() -> Param {
-        Param {
-            desc: String::new(),
-            name: String::new(),
-            var_type: String::new(),
-        }
-    }
     pub fn clone(&mut self) -> Param {
         let new_desc = self.desc.clone();
         let new_name = self.name.clone();
@@ -24,14 +17,5 @@ impl Param {
             name: new_name,
             var_type: new_type,
         }
-    }
-    pub fn ch_desc(&mut self, value: String) {
-        self.desc = value;
-    }
-    pub fn ch_name(&mut self, value: String) {
-        self.name = value;
-    }
-    pub fn ch_type(&mut self, value: String) {
-        self.var_type = value;
     }
 }

@@ -39,9 +39,6 @@ impl Member {
     pub fn ch_type(&mut self, value: String) {
         self.var_type = value;
     }
-    pub fn ch_desc(&mut self, value: String) {
-        self.desc = value;
-    }
     pub fn add_modifier(&mut self, value: String) {
         self.modifiers.push(value);
     }
