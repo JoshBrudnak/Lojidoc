@@ -130,7 +130,7 @@ pub fn document(
 
 fn main() {
     let matches = App::new("Javadoc-To-Markdown")
-        .version("1.0.0")
+        .version("0.2.0")
         .author("Josh Brudnak <jobrud314@gmail.com>")
         .about("A tool for generating markdown documentation for java projects")
         .arg(
@@ -159,9 +159,9 @@ fn main() {
                 .short("v")
                 .help("Generate documentation for a project and provide verbose output"),
         ).arg(
-            Arg::with_name("single-thread")
-                .short("s")
-                .help("Use only on thread for execution of the program"),
+            Arg::with_name("multi-thread")
+                .short("m")
+                .help("Use multiple threads to execute the program"),
         ).arg(
             Arg::with_name("destination")
                 .required(false)
@@ -182,9 +182,15 @@ fn main() {
     let context = matches.value_of("context").unwrap_or("").to_string();
     let book = matches.value_of("book").unwrap_or("").to_string();
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
-    let single_thread = matches.is_present("single_thread");
+    let multi_thread = matches.is_present("multi_thread");
     let lint = matches.is_present("lint");
     let verbose = matches.is_present("verbose");
+
+    let gen_book = if book != "" {
+        true
+    } else {
+        false
+    };
 
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
     println!("\nGenerating documentation from {}\n", dir);
@@ -201,16 +207,12 @@ fn main() {
             }
         }
 
-        if single_thread && book != "" {
-            document_single(file_paths, dest.clone(), context, verbose, true);
-        } else if single_thread && book == "" {
-            document_single(file_paths, dest.clone(), context, verbose, false);
-        } else if lint && book != "" {
+        if multi_thread {
+            document(file_paths, dest.clone(), context, verbose, gen_book);
+        } else if lint {
             lint_javadoc(file_paths, dest.clone(), true);
-        } else if book != "" {
-            document(file_paths, dest.clone(), context, verbose, true);
         } else {
-            document(file_paths, dest.clone(), context, verbose, false);
+            document_single(file_paths, dest.clone(), context, verbose, gen_book);
         }
 
         if book != "" {

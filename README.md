@@ -66,7 +66,7 @@ $ lojidoc ~/Project/src/java/ -l -s
 
 | Flag | Description                                                     |
 | ---- | --------------------------------------------------------------- |
-| s    | Use only on thread for execution of the program                 |
+| m    | Use multiple threads to execute the program                     |
 | l    | Check a java project for incorrect or missing javadocs          |
 | h    | Prints help information                                         |
 | v    | Generate documentation for a project and provide verbose output |
