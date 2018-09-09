@@ -13,7 +13,6 @@ pub mod document {
     use model::model::Member;
     use model::model::Method;
     use model::model::Project;
-    use parse::parse::parse_file;
 
     /// Finds out whether a file is a java file
     fn is_java_file(file: &str) -> bool {
@@ -111,13 +110,10 @@ pub mod document {
 
         if class.file_path != "" {
             doc.push_str(
-                format!(
-                    "# Class {} [[src]]({})  \n\n",
-                    class.class_name, class.file_path
-                ).as_str(),
+                format!("# Class {} [[src]]({})  \n\n", class.name, class.file_path).as_str(),
             );
         } else {
-            doc.push_str(format!("# Class {}\n\n", class.class_name).as_str());
+            doc.push_str(format!("# Class {}\n\n", class.name).as_str());
         }
 
         if class.license != "" {
@@ -371,7 +367,7 @@ pub mod document {
     /// * `context` - The project context e.g. `github.com/user/repo`
     pub fn generate_markdown(proj: Project, dest: &str, book: bool) {
         for mut class in proj.classes {
-            let name = format!("{}/{}.{}", dest, class.class_name, "md");
+            let name = format!("{}/{}.{}", dest, class.name, "md");
             let mut file = File::create(name).unwrap();
 
             let mut doc = gen_class_docs(class.clone());
@@ -381,14 +377,14 @@ pub mod document {
                 .expect("Not able to write to file");
 
             if book {
-                let name = format!("./markdown-book/src/{}.{}", class.class_name, "md");
+                let name = format!("./markdown-book/src/{}.{}", class.name, "md");
                 let mut file = File::create(name).unwrap();
 
                 file.write(doc.as_str().as_bytes())
                     .expect("Not able to write to file");
             }
 
-            println!("{}.{} was created", class.class_name, "md");
+            println!("{}.{} was created", class.name, "md");
         }
 
         for mut inter in proj.interfaces {
@@ -464,7 +460,7 @@ pub mod document {
     ///
     /// * `paths` - The java file path
     /// * `context` - Url of the git or mercurial repository
-    pub fn resolve_context(path: PathBuf, context: &String) -> String {
+    pub fn resolve_context(path: &PathBuf, context: &String) -> String {
         let p = path.to_str().unwrap();
         let line_vec: Vec<&str> = p.split("/").collect::<Vec<&str>>();
         let mut part = line_vec[0].to_string();
@@ -476,32 +472,6 @@ pub mod document {
         new_context.push_str(line_vec.join("").as_str());
 
         new_context
-    }
-
-    /// Handles linting javadocs without saving the documentation
-    ///
-    /// # Arguments
-    ///
-    /// * `file_paths` - A vector of the file paths of java files
-    /// * `dest` - The file path where the markdown will be saved
-    pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String, book: bool) {
-        let mut project: Project = Project::new();
-
-        for file in file_paths.clone() {
-            let mut class = parse_file(&file, true);
-
-            if !class.is_class {
-                project.add_interface(class.to_interface());
-            } else {
-                project.add_class(class.clone());
-            }
-        }
-
-        generate_markdown(project, dest.as_str(), book);
-        println!(
-            "\nDocumentation finished. Generated {} markdown files.",
-            file_paths.len()
-        );
     }
 
     /// Creates a markdown book using mdbook. Uses the files in the generated documentation

@@ -45,4 +45,7 @@ impl Interface {
             methods: new_methods,
         }
     }
+    pub fn ch_file_path(&mut self, value: String) {
+        self.file_path = value;
+    }
 }

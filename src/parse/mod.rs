@@ -9,6 +9,9 @@ pub mod parse {
     use model::model::Member;
     use model::model::Method;
     use model::model::Param;
+    use model::model::ObjectType;
+    use model::model::Object;
+    use model::model::ObjectState;
 
     use colored::*;
     use std::fs::File;
@@ -135,7 +138,7 @@ pub mod parse {
     /// * `gram_parts` - A vector of tokens from the object's declaration
     /// * `java_doc` - The java doc struct with the documentation for the class
     /// * `class` - The Class stuct to be modified with the new information
-    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, class: &mut Class) {
+    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, ob: &mut Object) {
         let mut implement = false;
         let mut exception = false;
         let mut parent = false;
@@ -145,28 +148,23 @@ pub mod parse {
             match gram_parts[i].clone() {
                 Stream::Variable(var) => {
                     if implement {
-                        class.add_interface(var);
+                        ob.add_interface(var);
                     } else if exception {
-                        class.add_exception(Exception {
+                        ob.add_exception(Exception {
                             desc: String::new(),
                             exception_type: var,
                         });
                     } else if class_name {
-                        class.ch_class_name(var);
+                        ob.ch_name(var);
                         class_name = false;
                     } else if parent {
-                        class.ch_parent(var);
+                        ob.ch_parent(var);
                         parent = false;
                     }
                 }
-                Stream::Object(var) => {
-                    if var == "interface" {
-                        class.ch_is_class(false);
-                    }
-                    class_name = true;
-                }
-                Stream::Access(key) => class.ch_access(key),
-                Stream::Modifier(key) => class.add_modifier(key),
+                Stream::Object(_) => class_name = true,
+                Stream::Access(key) => ob.ch_access(key),
+                Stream::Modifier(key) => ob.add_modifier(key),
                 Stream::Exception => {
                     exception = true;
                     implement = false;
@@ -190,15 +188,15 @@ pub mod parse {
         }
 
         if java_doc.description != "" {
-            class.ch_description(java_doc.description.clone());
+            ob.ch_description(java_doc.description.clone());
         }
 
         if java_doc.author != "" {
-            class.ch_author(java_doc.author.clone());
+            ob.ch_author(java_doc.author.clone());
         }
 
         if java_doc.version != "" {
-            class.ch_version(java_doc.version.clone());
+            ob.ch_version(java_doc.version.clone());
         }
     }
 
@@ -509,10 +507,10 @@ pub mod parse {
     /// # Arguments
     ///
     /// * `tokens` - The list of tokens from the lexer
-    pub fn construct_ast(tokens: Vec<Token>) -> Class {
+    pub fn construct_ast(tokens: Vec<Token>) -> ObjectType {
         let mut annotation = false;
         let mut ignore = false;
-        let mut class = Class::new();
+        let mut object = Object::new();
         let mut in_object = false;
         let mut parse_state = ParseState::new();
         let mut doc = false;
@@ -538,24 +536,42 @@ pub mod parse {
 
             match token.clone() {
                 Token::Keyword(key) => {
+                    let temp_sym = symbols.clone();
+                    if temp_sym.len() == 1 {
+                        gram_parts.push(Stream::Variable(temp_sym[0].clone()));
+                    } else if temp_sym.len() > 1 {
+                        gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
+                        gram_parts.push(Stream::Variable(temp_sym[temp_sym.len() - 1].clone()));
+                    }
+
                     match key.as_ref() {
                         "class" => {
                             if !doc && !comment {
-                                gram_parts.push(Stream::Object("class".to_string()));
+                                object.ch_state(ObjectState::Class);
+                                gram_parts.push(Stream::Object(key.to_string()));
                                 parse_state.ch_class(true);
                             }
                             in_object = true;
                         }
                         "interface" => {
                             if !doc && !comment {
-                                gram_parts.push(Stream::Object("interface".to_string()));
+                                object.ch_state(ObjectState::Interface);
+                                gram_parts.push(Stream::Object(key.to_string()));
                                 parse_state.ch_interface(true);
+                            }
+                            in_object = true;
+                        }
+                        "enum" => {
+                            if !doc && !comment {
+                                object.ch_state(ObjectState::Enumeration);
+                                gram_parts.push(Stream::Object(key.to_string()));
+                                parse_state.ch_enum(true);
                             }
                             in_object = true;
                         }
                         "package" => {
                             if comment_buf != "" {
-                                class.ch_license(comment_buf.clone());
+                                object.ch_license(comment_buf.clone());
                             }
                             gram_parts.push(Stream::Package);
                         }
@@ -563,7 +579,6 @@ pub mod parse {
                         "extends" => gram_parts.push(Stream::Parent),
                         "implements" => gram_parts.push(Stream::Implement),
                         "import" => gram_parts.push(Stream::Import),
-                        "enum" => gram_parts.push(Stream::Object("enum".to_string())),
                         _ => {
                             if access_mod_match!(token.clone()) {
                                 gram_parts.push(Stream::Access(key.to_string()));
@@ -648,8 +663,7 @@ pub mod parse {
                     } else {
                         let temp_sym = symbols.clone();
                         if temp_sym.len() == 1 {
-                            gram_parts
-                                .push(Stream::Variable(temp_sym[..temp_sym.len() - 1].join(" ")));
+                            gram_parts.push(Stream::Variable(temp_sym[0].clone()));
                         } else if temp_sym.len() > 1 {
                             gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
                             gram_parts.push(Stream::Variable(temp_sym[temp_sym.len() - 1].clone()));
@@ -678,10 +692,11 @@ pub mod parse {
                 }
                 Token::ExpressionEnd(end) => {
                     // For any symbols not included add them to the stream for parsing
-                    if symbols.len() > 0 {
-                        for sym in symbols.clone() {
-                            gram_parts.push(Stream::Variable(sym));
-                        }
+                    if symbols.len() == 1 {
+                        gram_parts.push(Stream::Variable(symbols[0].clone()));
+                    } else if symbols.len() > 1 {
+                        gram_parts.push(Stream::Type(symbols[..symbols.len() - 1].join(" ")));
+                        gram_parts.push(Stream::Variable(symbols[symbols.len() - 1].clone()));
                     }
 
                     let mut temp_gram = gram_parts.clone();
@@ -692,35 +707,34 @@ pub mod parse {
                                 if temp_gram.len() > 1 {
                                     match temp_gram[0].clone() {
                                         Stream::Import => match temp_gram[1].clone() {
-                                            Stream::Variable(key) => class.add_dependency(key),
+                                            Stream::Variable(key) => object.add_dependency(key),
                                             _ => println!("Pattern not supported"),
                                         },
                                         Stream::Package => match temp_gram[1].clone() {
-                                            Stream::Variable(key) => class.ch_package_name(key),
+                                            Stream::Variable(key) => object.ch_package_name(key),
                                             _ => println!("Pattern not supported"),
                                         },
                                         _ => {
-                                            class.add_variable(get_var(temp_gram, line_num.clone()))
+                                            object.add_variable(get_var(temp_gram, line_num.clone()))
                                         }
                                     }
                                 }
                             } else {
-                                if class.is_class {
-                                    class.add_variable(get_var(temp_gram, line_num.clone()));
-                                } else {
-                                    class.add_method(get_method(
+                                match object.state {
+                                    ObjectState::Class => object.add_variable(get_var(temp_gram, line_num.clone())),
+                                    _ => object.add_method(get_method(
                                         temp_gram,
                                         &jdoc,
                                         line_num.clone(),
-                                    ));
+                                    )),
                                 }
                             }
                         }
                         "{" => {
                             if parse_state.interface || parse_state.class {
-                                get_object(temp_gram.clone(), &jdoc, &mut class);
+                                get_object(temp_gram.clone(), &jdoc, &mut object);
                             } else {
-                                class.add_method(get_method(temp_gram, &jdoc, line_num.clone()));
+                                object.add_method(get_method(temp_gram, &jdoc, line_num.clone()));
                             }
                         }
                         _ => {
@@ -741,7 +755,15 @@ pub mod parse {
             }
         }
 
-        class
+        match object.state {
+            ObjectState::Class => return ObjectType::Class(object.to_class()),
+            ObjectState::Interface => return ObjectType::Interface(object.to_interface()),
+            ObjectState::Enumeration => return ObjectType::Enumeration(object.to_enumeration()),
+            ObjectState::Unset => {
+                println!("Java file type not supported. Supported types: class, interface, enum");
+                return ObjectType::Class(object.to_class());
+            },
+        }
     }
 
     /// Root function of the module. Calls the lex and parse functions and returns
@@ -751,7 +773,7 @@ pub mod parse {
     ///
     /// * `path` - The path of the java file
     /// * `lint` - A bool representing whether the class's javadoc comments should be linted
-    pub fn parse_file(path: &Path, _lint: bool) -> Class {
+    pub fn parse_file(path: &Path, _lint: bool) -> ObjectType {
         let file = File::open(path).expect("Could not open file");
         let mut contents = String::new();
         let mut buf = BufReader::new(file);
@@ -761,7 +783,7 @@ pub mod parse {
             construct_ast(tokens)
         } else {
             println!("Unable to read file");
-            Class::new()
+            ObjectType::Class(Class::new())
         }
     }
 }

@@ -22,10 +22,34 @@ use threadpool::ThreadPool;
 use document::document::find_java_files;
 use document::document::gen_md_book;
 use document::document::generate_markdown;
-use document::document::lint_javadoc;
 use document::document::resolve_context;
 use model::model::Project;
+use model::model::ObjectType;
 use parse::parse::parse_file;
+
+/// Handles linting javadocs without saving the documentation
+///
+/// # Arguments
+///
+/// * `file_paths` - A vector of the file paths of java files
+/// * `dest` - The file path where the markdown will be saved
+pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String, book: bool) {
+    let mut project: Project = Project::new();
+
+    for file in file_paths.clone() {
+        match parse_file(&file, true) {
+            ObjectType::Class(class) => project.add_class(class),
+            ObjectType::Interface(inter) => project.add_interface(inter),
+            ObjectType::Enumeration(enumeration) => project.add_enumeration(enumeration),
+        }
+    }
+
+    generate_markdown(project, dest.as_str(), book);
+    println!(
+        "\nDocumentation finished. Generated {} markdown files.",
+        file_paths.len()
+    );
+}
 
 /// Handles the single threaded option for running the application
 ///
@@ -45,17 +69,22 @@ pub fn document_single(
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-        let mut class = parse_file(&file, verbose);
 
-        let m_context = resolve_context(file, &context);
+        let m_context = resolve_context(&file, &context);
 
-        if m_context != "" {
-            class.ch_file_path(m_context);
-        }
-        if !class.is_class {
-            project.add_interface(class.to_interface());
-        } else {
-            project.add_class(class.clone());
+        match parse_file(&file, verbose) {
+            ObjectType::Class(mut class) => {
+                class.ch_file_path(m_context);
+                project.add_class(class.clone());
+            },
+            ObjectType::Interface(mut inter) => {
+                inter.ch_file_path(m_context);
+                project.add_interface(inter.clone());
+            },
+            ObjectType::Enumeration(mut enumeration) => {
+                enumeration.ch_file_path(m_context);
+                project.add_enumeration(enumeration.clone());
+            },
         }
     }
 
@@ -99,20 +128,28 @@ pub fn document(
 
             for j in 0..4 {
                 if (i * 4) + j < size {
-                    let mut file = file_cp[(i * 4) + j].clone();
-                    let mut class = parse_file(&file, verbose);
                     let mut m_context = String::new();
+                    let mut file = file_cp[(i * 4) + j].clone();
 
                     if new_context != "" {
-                        m_context = resolve_context(file, &new_context);
+                        m_context = resolve_context(&file, &new_context);
                     }
-                    class.ch_file_path(m_context);
 
-                    if !class.is_class {
-                        project.add_interface(class.to_interface());
-                    } else {
-                        project.add_class(class.clone());
+                    match parse_file(&file, verbose) {
+                        ObjectType::Class(mut class) => {
+                            class.ch_file_path(m_context);
+                            project.add_class(class.clone());
+                        },
+                        ObjectType::Interface(mut inter) => {
+                            inter.ch_file_path(m_context);
+                            project.add_interface(inter.clone());
+                        },
+                        ObjectType::Enumeration(mut enumeration) => {
+                            enumeration.ch_file_path(m_context);
+                            project.add_enumeration(enumeration.clone());
+                        },
                     }
+
                 }
             }
 
@@ -139,36 +176,43 @@ fn main() {
                 .required(true)
                 .help("Set the input directory to use")
                 .index(1),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("context")
                 .help("Set the context path of the project")
                 .value_name("FILE")
                 .short("c"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("book")
                 .value_name("FILE")
                 .required(false)
                 .short("b")
                 .help("Use mdbook to create a book for your generated documentation"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("lint")
                 .help("Check a java project for incorrent and missing javadocs")
                 .short("l"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("verbose")
                 .short("v")
                 .help("Generate documentation for a project and provide verbose output"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("multi-thread")
                 .short("m")
                 .help("Use multiple threads to execute the program"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("destination")
                 .required(false)
                 .value_name("FILE")
                 .short("d")
                 .help("Sets the destination directory of the created markdown files"),
-        ).get_matches();
+        )
+        .get_matches();
 
     let dir = matches
         .value_of("INPUT")
@@ -186,11 +230,7 @@ fn main() {
     let lint = matches.is_present("lint");
     let verbose = matches.is_present("verbose");
 
-    let gen_book = if book != "" {
-        true
-    } else {
-        false
-    };
+    let gen_book = if book != "" { true } else { false };
 
     fs::create_dir_all(dest.as_str()).expect("File path not able to be created");
     println!("\nGenerating documentation from {}\n", dir);

@@ -139,6 +139,9 @@ pub mod grammar {
         pub fn ch_class(&mut self, value: bool) {
             self.class = value;
         }
+        pub fn ch_enum(&mut self, value: bool) {
+            self.enum_ob = value;
+        }
         pub fn ch_interface(&mut self, value: bool) {
             self.interface = value;
         }
