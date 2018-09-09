@@ -1,9 +1,9 @@
 [package]
 name = "lojidoc"
-version = "0.2.0"
+version = "0.2.1"
 license = "Apache-2.0"
 description = "A tool for generating documentation for java projects."
-keywords = ["documentation", "java", "javadoc"]
+keywords = ["documentation", "java", "javadoc", "parser"]
 authors = ["Josh Brudnak <jobrud314@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/JoshBrudnak/Lojidoc"

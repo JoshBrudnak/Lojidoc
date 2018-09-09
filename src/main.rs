@@ -167,7 +167,7 @@ pub fn document(
 
 fn main() {
     let matches = App::new("Javadoc-To-Markdown")
-        .version("0.2.0")
+        .version("0.2.1")
         .author("Josh Brudnak <jobrud314@gmail.com>")
         .about("A tool for generating markdown documentation for java projects")
         .arg(
