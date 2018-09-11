@@ -7,10 +7,10 @@ pub mod parse {
     use model::model::Exception;
     use model::model::Member;
     use model::model::Method;
-    use model::model::Param;
-    use model::model::ObjectType;
     use model::model::Object;
     use model::model::ObjectState;
+    use model::model::ObjectType;
+    use model::model::Param;
 
     use colored::*;
     use std::fs::File;
@@ -713,14 +713,15 @@ pub mod parse {
                                             Stream::Variable(key) => object.ch_package_name(key),
                                             _ => println!("Pattern not supported"),
                                         },
-                                        _ => {
-                                            object.add_variable(get_var(temp_gram, line_num.clone()))
-                                        }
+                                        _ => object
+                                            .add_variable(get_var(temp_gram, line_num.clone())),
                                     }
                                 }
                             } else {
                                 match object.state {
-                                    ObjectState::Class => object.add_variable(get_var(temp_gram, line_num.clone())),
+                                    ObjectState::Class => {
+                                        object.add_variable(get_var(temp_gram, line_num.clone()))
+                                    }
                                     _ => object.add_method(get_method(
                                         temp_gram,
                                         &jdoc,
@@ -761,7 +762,7 @@ pub mod parse {
             ObjectState::Unset => {
                 println!("Java file type not supported. Supported types: class, interface, enum");
                 return ObjectType::Class(object.to_class());
-            },
+            }
         }
     }
 

@@ -22,10 +22,10 @@ use threadpool::ThreadPool;
 use document::document::find_java_files;
 use document::document::gen_md_book;
 use document::document::generate_markdown;
-use document::document::resolve_context;
 use document::document::lint_project;
-use model::model::Project;
+use document::document::resolve_context;
 use model::model::ObjectType;
+use model::model::Project;
 use parse::parse::parse_file;
 
 /// Handles linting javadocs without saving the documentation
@@ -42,15 +42,15 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>) {
             ObjectType::Class(mut class) => {
                 class.ch_file_path(file.to_str().unwrap().to_string());
                 project.add_class(class);
-            },
+            }
             ObjectType::Interface(mut inter) => {
                 inter.ch_file_path(file.to_str().unwrap().to_string());
                 project.add_interface(inter)
-            },
+            }
             ObjectType::Enumeration(mut enumeration) => {
                 enumeration.ch_file_path(file.to_str().unwrap().to_string());
                 project.add_enumeration(enumeration);
-            },
+            }
         }
     }
 
@@ -75,22 +75,21 @@ pub fn document_single(
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-
         let m_context = resolve_context(&file, &context);
 
         match parse_file(&file, verbose) {
             ObjectType::Class(mut class) => {
                 class.ch_file_path(m_context);
                 project.add_class(class.clone());
-            },
+            }
             ObjectType::Interface(mut inter) => {
                 inter.ch_file_path(m_context);
                 project.add_interface(inter.clone());
-            },
+            }
             ObjectType::Enumeration(mut enumeration) => {
                 enumeration.ch_file_path(m_context);
                 project.add_enumeration(enumeration.clone());
-            },
+            }
         }
     }
 
@@ -145,17 +144,16 @@ pub fn document(
                         ObjectType::Class(mut class) => {
                             class.ch_file_path(m_context);
                             project.add_class(class.clone());
-                        },
+                        }
                         ObjectType::Interface(mut inter) => {
                             inter.ch_file_path(m_context);
                             project.add_interface(inter.clone());
-                        },
+                        }
                         ObjectType::Enumeration(mut enumeration) => {
                             enumeration.ch_file_path(m_context);
                             project.add_enumeration(enumeration.clone());
-                        },
+                        }
                     }
-
                 }
             }
 
