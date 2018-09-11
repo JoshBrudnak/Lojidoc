@@ -2,18 +2,19 @@ use model::model::*;
 
 #[test]
 fn test_class_impl() {
-    let mut class = Class::new();
-    class.ch_class_name("sample".to_string());
-    class.ch_package_name("com.stuff.package".to_string());
-    class.ch_access("private".to_string());
-    class.ch_author("jim smith".to_string());
-    let class2 = class.clone();
-    class.ch_package_name("new.package".to_string());
+    let mut object = Object::new();
+    object.ch_name(String::from("sample"));
+    object.ch_package_name("com.stuff.package".to_string());
+    object.ch_access("private".to_string());
+    object.ch_author("jim smith".to_string());
+    let class = object.to_class();
 
-    assert_eq!("sample", class.class_name.as_str());
-    assert_eq!("private", class2.access.as_str());
-    assert_eq!("new.package", class.package_name.as_str());
-    assert_eq!("com.stuff.package", class2.package_name.as_str());
+    assert_eq!("sample", object.name.as_str());
+    assert_eq!("private", object.access.as_str());
+    assert_eq!("com.stuff.package", object.package_name.as_str());
+    assert_eq!("com.stuff.package", class.package_name.as_str());
+    assert_eq!("sample", class.name.as_str());
+    assert_eq!("private", class.access.as_str());
 }
 
 #[test]
