@@ -1,6 +1,5 @@
 pub mod parse {
     //! A module which handles the parsing for java files
-    extern crate colored;
 
     use grammar::grammar::*;
     use model::model::Class;
@@ -53,7 +52,7 @@ pub mod parse {
                                     parameters.push(Param {
                                         var_type: String::new(),
                                         name: word_parts[0].to_string(),
-                                        desc: word_parts[1..].join(""),
+                                        desc: word_parts[1..].join(" "),
                                     });
                                 } else if word_parts.len() == 1 {
                                     parameters.push(Param {

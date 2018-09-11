@@ -23,6 +23,7 @@ use document::document::find_java_files;
 use document::document::gen_md_book;
 use document::document::generate_markdown;
 use document::document::resolve_context;
+use document::document::lint_project;
 use model::model::Project;
 use model::model::ObjectType;
 use parse::parse::parse_file;
@@ -33,22 +34,27 @@ use parse::parse::parse_file;
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
-pub fn lint_javadoc(file_paths: Vec<PathBuf>, dest: String, book: bool) {
+pub fn lint_javadoc(file_paths: Vec<PathBuf>) {
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
         match parse_file(&file, true) {
-            ObjectType::Class(class) => project.add_class(class),
-            ObjectType::Interface(inter) => project.add_interface(inter),
-            ObjectType::Enumeration(enumeration) => project.add_enumeration(enumeration),
+            ObjectType::Class(mut class) => {
+                class.ch_file_path(file.to_str().unwrap().to_string());
+                project.add_class(class);
+            },
+            ObjectType::Interface(mut inter) => {
+                inter.ch_file_path(file.to_str().unwrap().to_string());
+                project.add_interface(inter)
+            },
+            ObjectType::Enumeration(mut enumeration) => {
+                enumeration.ch_file_path(file.to_str().unwrap().to_string());
+                project.add_enumeration(enumeration);
+            },
         }
     }
 
-    generate_markdown(project, dest.as_str(), book);
-    println!(
-        "\nDocumentation finished. Generated {} markdown files.",
-        file_paths.len()
-    );
+    println!("{}", lint_project(project));
 }
 
 /// Handles the single threaded option for running the application
@@ -250,7 +256,7 @@ fn main() {
         if multi_thread {
             document(file_paths, dest.clone(), context, verbose, gen_book);
         } else if lint {
-            lint_javadoc(file_paths, dest.clone(), true);
+            lint_javadoc(file_paths);
         } else {
             document_single(file_paths, dest.clone(), context, verbose, gen_book);
         }

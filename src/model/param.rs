@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Struct representing method parameter data contained in javadoc and method declaration
 pub struct Param {
     pub desc: String,

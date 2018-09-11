@@ -1,4 +1,5 @@
 pub mod document {
+    extern crate colored;
 
     use mdbook::MDBook;
 
@@ -8,6 +9,7 @@ pub mod document {
     use std::path::Path;
     use std::path::PathBuf;
 
+    use colored::*;
     use model::model::Class;
     use model::model::Interface;
     use model::model::Member;
@@ -399,6 +401,141 @@ pub mod document {
 
             println!("{}.{} was created", inter.name, "md");
         }
+    }
+
+    pub fn lint_method(method: &Method) -> String {
+        let mut method_errs = String::new();
+
+        if method.description == "" {
+            method_errs.push_str(
+                "\tMissing description for method "
+                    .yellow()
+                    .to_string()
+                    .as_str(),
+            );
+            method_errs.push_str(format!("{} (Line: {})\n", method.name, method.line_num).as_str());
+        }
+        if method.return_type == "" {
+            method_errs.push_str(
+                "\tMissing return type for method "
+                    .yellow()
+                    .to_string()
+                    .as_str(),
+            );
+            method_errs.push_str(format!("{} (Line: {})\n", method.name, method.line_num).as_str());
+        }
+
+        for p in method.parameters.clone() {
+            if p.desc == "" {
+                method_errs.push_str(
+                    "\tJavadoc parameter not found "
+                        .yellow()
+                        .to_string()
+                        .as_str(),
+                );
+                method_errs.push_str(
+                    format!(
+                        "{} in method: {} (Line: {})\n",
+                        p.name, method.name, method.line_num
+                    ).as_str(),
+                );
+            }
+        }
+
+        method_errs
+    }
+    pub fn lint_var(var: &Member) -> String {
+        let mut errs = String::new();
+
+        if var.desc == "" {
+            errs.push_str(
+                "\tMissing description for member variable "
+                    .yellow()
+                    .to_string()
+                    .as_str(),
+            );
+            errs.push_str(format!("{} (Line: {})\n", var.name, var.line_num).as_str());
+        }
+        if var.var_type == "" {
+            errs.push_str(
+                "\tMissing return type for member variable "
+                    .yellow()
+                    .to_string()
+                    .as_str(),
+            );
+            errs.push_str(format!("{} (Line: {})\n", var.name, var.line_num).as_str());
+        }
+
+        errs
+    }
+
+    /// Lints the java project's javadoc comments and prints the errors
+    ///
+    /// # Arguments
+    ///
+    /// * `proj` - The project to lint
+    pub fn lint_project(proj: Project) -> String {
+        let mut jdoc_errs = String::new();
+
+        for mut class in proj.classes {
+            let mut temp_err = String::new();
+
+            for v in class.variables {
+                temp_err.push_str(lint_var(&v).as_str());
+            }
+            for m in class.methods {
+                temp_err.push_str(lint_method(&m).as_str());
+            }
+
+            if temp_err != "" {
+                jdoc_errs.push_str(
+                    "Javadoc errors for class "
+                        .green()
+                        .bold()
+                        .to_string()
+                        .as_str(),
+                );
+                jdoc_errs.push_str(
+                    format!(
+                        "{}\nFile: {}\n",
+                        class.name,
+                        class.file_path.as_str().blue().to_string()
+                    ).as_str(),
+                );
+                jdoc_errs.push_str(format!("{}\n", temp_err).as_str());
+            }
+        }
+
+        for mut inter in proj.interfaces {
+            let mut temp_err = String::new();
+
+            for v in inter.variables {
+                temp_err.push_str(lint_var(&v).as_str());
+            }
+            for m in inter.methods {
+                temp_err.push_str(lint_method(&m).as_str());
+            }
+
+            if temp_err != "" {
+                jdoc_errs.push_str(
+                    "Javadoc errors for interface "
+                        .green()
+                        .bold()
+                        .to_string()
+                        .as_str(),
+                );
+                jdoc_errs.push_str(
+                    format!(
+                        "{}\nFile: {}\n",
+                        inter.name,
+                        inter.file_path.as_str().blue().to_string()
+                    ).as_str(),
+                );
+                jdoc_errs.push_str(format!("{}\n", temp_err).as_str());
+            }
+        }
+
+        jdoc_errs
     }
 
     /// Determines whether a file path contains a git or mercurial file
