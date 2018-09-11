@@ -1,4 +1,5 @@
 pub mod class;
+pub mod contents;
 pub mod doc;
 pub mod enumeration;
 pub mod exception;
@@ -13,6 +14,7 @@ pub mod model {
     //! Module that contains all necessary data stuctures for parsing javadocs and generating docs
 
     pub use model::class::Class;
+    pub use model::contents::ApplicationDoc;
     pub use model::doc::Doc;
     pub use model::enumeration::Enumeration;
     pub use model::exception::Exception;

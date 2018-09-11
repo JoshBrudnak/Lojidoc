@@ -10,6 +10,7 @@ pub mod document {
     use std::path::PathBuf;
 
     use colored::*;
+    use model::contents::ApplicationDoc;
     use model::model::Class;
     use model::model::Interface;
     use model::model::Member;
@@ -368,6 +369,8 @@ pub mod document {
     /// * `dest` - The file path where the markdown file will be saved
     /// * `context` - The project context e.g. `github.com/user/repo`
     pub fn generate_markdown(proj: Project, dest: &str, book: bool) {
+        let mut app_doc = ApplicationDoc::new();
+
         for mut class in proj.classes {
             let name = format!("{}/{}.{}", dest, class.name, "md");
             let mut file = File::create(name).unwrap();
@@ -385,6 +388,8 @@ pub mod document {
                 file.write(doc.as_str().as_bytes())
                     .expect("Not able to write to file");
             }
+
+            app_doc.add_package_class(class.package_name, class.name.clone());
 
             println!("{}.{} was created", class.name, "md");
         }
