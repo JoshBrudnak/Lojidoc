@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["grammar","Module that contains grammar used in the lexing and parsing of java code Also defines other sets of keywords like javadoc keywords or framework annotations"]]});

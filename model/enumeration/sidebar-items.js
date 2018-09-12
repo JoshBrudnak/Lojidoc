@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Enumeration","Struct containing enumeration documentation information Includes package name, imports, methods, and other data"],["EnumerationField",""]]});

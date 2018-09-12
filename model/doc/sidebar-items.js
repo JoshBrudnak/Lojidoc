@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Doc","Struct representing data contained in javadoc comments"]]});

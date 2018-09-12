@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Param","Struct representing method parameter data contained in javadoc and method declaration"]]});

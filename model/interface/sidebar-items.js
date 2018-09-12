@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Interface","Struct containing interface documentation information Includes package name, imports, method templates, and other data"]]});

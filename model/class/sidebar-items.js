@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Class","Struct containing class documentation information Includes package name, imports, methods, and other data"]]});

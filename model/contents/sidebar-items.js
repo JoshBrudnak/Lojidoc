@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ApplicationDoc","Struct representing all the application data"],["Package","Struct for a java package. stores the name and member files"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ObjectState",""]],"struct":[["Object","Struct containing class documentation information Includes package name, imports, methods, and other data"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Member","Struct representing member variable data contained in javadoc and declaration"]]});

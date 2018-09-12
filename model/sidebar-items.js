@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["class",""],["contents",""],["doc",""],["enumeration",""],["exception",""],["interface",""],["member",""],["method",""],["model","Module that contains all necessary data stuctures for parsing javadocs and generating docs"],["object",""],["param",""],["project",""]]});

@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `lojidoc` crate."><meta name="keywords" content="rust, rustlang, rust-lang, lojidoc"><title>lojidoc - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Crate lojidoc</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#reexports">Re-exports</a></li><li><a href="#modules">Modules</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'lojidoc', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>lojidoc</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/lojidoc/main.rs.html#1-268' title='goto source code'>[src]</a></span></h1><h2 id='reexports' class='section-header'><a href="#reexports">Re-exports</a></h2>
+<table><tr><td><code>extern crate <a class="mod" href="https://doc.rust-lang.org/nightly/std/index.html" title="mod std">std</a>;</code></td></tr><tr><td><code>extern crate <a class="mod" href="https://docs.rs/clap/2.32.0/clap/index.html" title="mod clap">clap</a>;</code></td></tr><tr><td><code>extern crate colored;</code></td></tr><tr><td><code>extern crate mdbook;</code></td></tr><tr><td><code>extern crate threadpool;</code></td></tr><tr><td><code>use std::prelude::v1::*;</code></td></tr><tr><td><code>use mdbook::config::Config;</code></td></tr><tr><td><code>use mdbook::MDBook;</code></td></tr><tr><td><code>use clap::<a class="struct" href="https://docs.rs/clap/2.32.0/clap/app/struct.App.html" title="struct clap::app::App">App</a>;</code></td></tr><tr><td><code>use clap::<a class="struct" href="https://docs.rs/clap/2.32.0/clap/args/arg/struct.Arg.html" title="struct clap::args::arg::Arg">Arg</a>;</code></td></tr><tr><td><code>use std::<a class="mod" href="https://doc.rust-lang.org/nightly/std/fs/index.html" title="mod std::fs">fs</a>;</code></td></tr><tr><td><code>use std::path::<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>;</code></td></tr><tr><td><code>use std::path::<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.PathBuf.html" title="struct std::path::PathBuf">PathBuf</a>;</code></td></tr><tr><td><code>use std::sync::<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html" title="struct alloc::arc::Arc">Arc</a>;</code></td></tr><tr><td><code>use threadpool::ThreadPool;</code></td></tr><tr><td><code>use document::document::<a class="fn" href="../lojidoc/document/document/fn.find_java_files.html" title="fn lojidoc::document::document::find_java_files">find_java_files</a>;</code></td></tr><tr><td><code>use document::document::<a class="fn" href="../lojidoc/document/document/fn.gen_md_book.html" title="fn lojidoc::document::document::gen_md_book">gen_md_book</a>;</code></td></tr><tr><td><code>use document::document::<a class="fn" href="../lojidoc/document/document/fn.generate_markdown.html" title="fn lojidoc::document::document::generate_markdown">generate_markdown</a>;</code></td></tr><tr><td><code>use document::document::<a class="fn" href="../lojidoc/document/document/fn.lint_project.html" title="fn lojidoc::document::document::lint_project">lint_project</a>;</code></td></tr><tr><td><code>use document::document::<a class="fn" href="../lojidoc/document/document/fn.resolve_context.html" title="fn lojidoc::document::document::resolve_context">resolve_context</a>;</code></td></tr><tr><td><code>use model::model::<a class="enum" href="../lojidoc/model/model/enum.ObjectType.html" title="enum lojidoc::model::model::ObjectType">ObjectType</a>;</code></td></tr><tr><td><code>use model::model::<a class="struct" href="../lojidoc/model/project/struct.Project.html" title="struct lojidoc::model::project::Project">Project</a>;</code></td></tr><tr><td><code>use parse::parse::<a class="fn" href="../lojidoc/parse/parse/fn.parse_file.html" title="fn lojidoc::parse::parse::parse_file">parse_file</a>;</code></td></tr></table><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="document/index.html"
+                                  title='mod lojidoc::document'>document</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="grammar/index.html"
+                                  title='mod lojidoc::grammar'>grammar</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="model/index.html"
+                                  title='mod lojidoc::model'>model</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="parse/index.html"
+                                  title='mod lojidoc::parse'>parse</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.document.html"
+                                  title='fn lojidoc::document'>document</a></td>
+                           <td class='docblock-short'>
+                                <p>Handles thread pooling the application</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.document_single.html"
+                                  title='fn lojidoc::document_single'>document_single</a></td>
+                           <td class='docblock-short'>
+                                <p>Handles the single threaded option for running the application</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.lint_javadoc.html"
+                                  title='fn lojidoc::lint_javadoc'>lint_javadoc</a></td>
+                           <td class='docblock-short'>
+                                <p>Handles linting javadocs without saving the documentation</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.main.html"
+                                  title='fn lojidoc::main'>main</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../";window.currentCrate = "lojidoc";</script><script src="../aliases.js"></script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>
