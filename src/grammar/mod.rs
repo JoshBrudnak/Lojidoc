@@ -2,6 +2,24 @@
 pub mod grammar {
     //! Module that contains grammar used in the lexing and parsing of java code
     //! Also defines other sets of keywords like javadoc keywords or framework annotations
+    //!
+    //! This module uses the following grammar:
+    //!
+    //! dec := access {mod}* ident sym
+    //! ident := sym | sym term {dec term}*
+    //! term := ( | ) | , | < | >
+    //! expr_end := ; | { | =
+    //! sym := {a-Z | 0-9}*
+    //! except := throws sym | throws {sym}*
+    //! impl := implements sym | implements {sym}*
+    //! paren := extends sym
+    //!
+    //! package_dec := package sym expr_end
+    //! import_dec := import sym expr_end | import static sym expr_end
+    //! method_dec := dec term {dec term}* expr_end
+    //! var_dec := dec term expr_end
+    //! class_dec := access {mod}* class sym {paren} {impl}* {except}* expr_end
+    //! inter_dec := access {mod}* interface sym {except}* expr_end
 
     #[derive(Clone, Debug, PartialEq)]
     pub enum Token {
