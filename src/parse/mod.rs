@@ -384,9 +384,12 @@ pub mod parse {
         if curr_token != "" {
             let keywords = get_keywords();
             let jdoc_keywords = get_jdoc_keywords();
+            let spring_keywords = get_spring_keywords();
             if is_keyword!(curr_token, keywords) {
                 tokens.push(Token::Keyword(curr_token.to_string()));
             } else if is_keyword!(curr_token, jdoc_keywords) {
+                tokens.push(Token::Keyword(curr_token.to_string()));
+            } else if is_keyword!(curr_token, spring_keywords) {
                 tokens.push(Token::Keyword(curr_token.to_string()));
             } else {
                 tokens.push(Token::Symbol(curr_token.to_string()));

@@ -89,6 +89,19 @@ pub mod grammar {
         ]
     }
 
+    pub fn get_spring_keywords<'a>() -> Vec<&'a str> {
+        vec![
+            "Autowired",
+            "Data",
+            "Controller",
+            "Service",
+            "Component",
+            "RequestMapping",
+            "Value",
+            "Bean",
+        ]
+    }
+
     #[derive(Debug, Clone)]
     pub enum Stream {
         Import,
