@@ -408,7 +408,7 @@ pub mod parse {
         loop {
             match blob.next() {
                 Some(ch) => match ch {
-                    ' ' | '\t' => {
+                    ' ' | '\t' | '\r' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens);
                         }
