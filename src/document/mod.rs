@@ -360,6 +360,31 @@ pub mod document {
         doc
     }
 
+    /// Generates the markdown documentation for the methods of a class
+    ///
+    /// # Arguments
+    ///
+    /// * `methods` - The vector of class methods to be documented
+    pub fn gen_application_doc(app: ApplicationDoc) -> String {
+        let mut doc = String::from("# Contents\n\n");
+
+        for p in app.packages {
+            doc.push_str("<details>  \n");
+            doc.push_str("  <summary>  \n");
+            doc.push_str(format!("{}\n", p.name).as_str());
+            doc.push_str("  </summary>  \n");
+
+            doc.push_str("  <ul>  \n");
+            for class in p.members {
+                doc.push_str(format!("    <li>{}</li>\n", class).as_str());
+            }
+            doc.push_str("  </ul>  \n");
+            doc.push_str("</details>  \n\n");
+        }
+
+        doc
+    }
+
     /// Generates a markdown file for a java file
     /// Uses a Class struct to write the markdown
     ///
@@ -404,8 +429,15 @@ pub mod document {
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
+            app_doc.add_package_class(inter.package_name, inter.name.clone());
+
             println!("{}.{} was created", inter.name, "md");
         }
+
+        let mut app_file = File::create(format!("{}/Contents.md", dest)).unwrap();
+        app_file
+            .write(gen_application_doc(app_doc).as_str().as_bytes())
+            .expect("Not able to write to file");
     }
 
     pub fn lint_method(method: &Method) -> String {
@@ -577,19 +609,22 @@ pub mod document {
 
             let file_dir = fs::read_dir(line_p);
 
-            if file_dir.is_ok() {
-                for f in file_dir.unwrap() {
-                    let p = f.unwrap().path();
+            match file_dir {
+                Ok(dir) => {
+                    for f in dir {
+                        let p = f.unwrap().path();
 
-                    if p.is_dir() {
-                        let p_str = p.as_path().to_str().unwrap();
-                        if is_repo_dir(&p_str) {
-                            let res_str = p.parent().unwrap().as_os_str().to_str().unwrap();
-                            res = res_str.to_string().clone();
-                            break;
+                        if p.is_dir() {
+                            let p_str = p.as_path().to_str().unwrap();
+                            if is_repo_dir(&p_str) {
+                                let res_str = p.parent().unwrap().as_os_str().to_str().unwrap();
+                                res = res_str.to_string().clone();
+                                break;
+                            }
                         }
                     }
                 }
+                Err(_) => println!("Error finding repository home"),
             }
         }
 

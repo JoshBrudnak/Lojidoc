@@ -43,6 +43,6 @@ impl Member {
         self.modifiers.push(value);
     }
     pub fn ch_line_number(&mut self, value: String) {
-        self.modifiers.push(value);
+        self.line_num = value;
     }
 }

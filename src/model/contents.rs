@@ -1,8 +1,8 @@
 #[derive(Clone)]
 /// Struct for a java package. stores the name and member files
 pub struct Package {
-    name: String,
-    members: Vec<String>,
+    pub name: String,
+    pub members: Vec<String>,
 }
 
 impl Package {
