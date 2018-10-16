@@ -1,3 +1,4 @@
+#[macro_use]
 pub mod parse {
     //! A module which handles the parsing for java files
 
@@ -17,6 +18,7 @@ pub mod parse {
     use std::io::BufReader;
     use std::io::Read;
     use std::path::Path;
+
 
     /// Handles token streams for javadoc comments and returns a `Doc` struct
     /// containing the information parsed from the javadoc comment.
@@ -380,9 +382,8 @@ pub mod parse {
         }};
     }
 
-    fn push_token(curr_token: &String, tokens: &mut Vec<Token>) {
+    fn push_token(curr_token: &String, tokens: &mut Vec<Token>, keywords: &Vec<&str>) {
         if curr_token != "" {
-            let keywords = get_keywords();
             let jdoc_keywords = get_jdoc_keywords();
             let spring_keywords = get_spring_keywords();
             if is_keyword!(curr_token, keywords) {
@@ -403,20 +404,22 @@ pub mod parse {
         let mut block_depth = 0;
         let mut line_number = 1;
         let mut blob = content.chars();
+        let keywords = get_keywords();
 
         tokens.push(Token::LineNumber(line_number.to_string()));
+
         loop {
             match blob.next() {
                 Some(ch) => match ch {
                     ' ' | '\t' | '\r' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                         }
                         curr_token = String::new();
                     }
                     '\n' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                         }
 
                         line_number = line_number + 1;
@@ -425,35 +428,35 @@ pub mod parse {
                     }
                     ',' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                             tokens.push(Token::Join)
                         }
                         curr_token = String::new();
                     }
                     ';' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                             tokens.push(Token::ExpressionEnd(";".to_string()));
                         }
                         curr_token = String::new();
                     }
                     '(' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                             tokens.push(Token::ParamStart);
                         }
                         curr_token = String::new();
                     }
                     ')' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                             tokens.push(Token::ParamEnd);
                         }
                         curr_token = String::new();
                     }
                     '{' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                             tokens.push(Token::ExpressionEnd("{".to_string()));
                         }
                         curr_token = String::new();
@@ -461,7 +464,7 @@ pub mod parse {
                     }
                     '}' => {
                         if block_depth < 2 {
-                            push_token(&curr_token, &mut tokens);
+                            push_token(&curr_token, &mut tokens, &keywords);
                         }
                         curr_token = String::new();
                         block_depth = block_depth - 1;

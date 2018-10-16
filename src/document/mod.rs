@@ -366,20 +366,15 @@ pub mod document {
     ///
     /// * `methods` - The vector of class methods to be documented
     pub fn gen_application_doc(app: ApplicationDoc) -> String {
-        let mut doc = String::from("# Contents\n\n");
+        let mut doc = String::from("# Application Contents\n\n");
 
         for p in app.packages {
-            doc.push_str("<details>  \n");
-            doc.push_str("  <summary>  \n");
-            doc.push_str(format!("{}\n", p.name).as_str());
-            doc.push_str("  </summary>  \n");
-
-            doc.push_str("  <ul>  \n");
+            doc.push_str(format!("## {}\n", p.name).as_str());
             for class in p.members {
-                doc.push_str(format!("    <li>{}</li>\n", class).as_str());
+                doc.push_str(format!("- [{}]({}.md)\n", class, class).as_str());
             }
-            doc.push_str("  </ul>  \n");
-            doc.push_str("</details>  \n\n");
+
+            doc.push_str("\n\n");
         }
 
         doc
@@ -624,7 +619,7 @@ pub mod document {
                         }
                     }
                 }
-                Err(_) => println!("Error finding repository home"),
+                Err(_) => (),
             }
         }
 

@@ -33,7 +33,7 @@ pub mod grammar {
     }
 
     /// Gets a full list of all the keywords for the lexer
-    pub fn get_keywords<'a>() -> Vec<&'a str> {
+    pub fn get_keywords() -> Vec<&'static str> {
         vec![
             "abstract",
             "class",
