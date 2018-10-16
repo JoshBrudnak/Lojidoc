@@ -15,7 +15,6 @@ pub mod parse {
     use model::model::EnumField;
     use model::model::Param;
 
-    use colored::*;
     use std::fs::File;
     use std::io::BufReader;
     use std::io::Read;
@@ -269,7 +268,7 @@ pub mod parse {
         }
 
         let n_params: Vec<Param> =
-            match_params(&mut method, &java_doc.params, &mut String::new(), false);
+            match_params(&mut method, &java_doc.params);
         method.ch_params(n_params);
 
         method
@@ -342,16 +341,10 @@ pub mod parse {
         fields
     }
 
-    fn match_params(
-        method: &mut Method,
-        jparams: &Vec<Param>,
-        jdoc_err: &mut String,
-        lint: bool,
-    ) -> Vec<Param> {
-        let params = method.clone_params();
+    pub fn match_params(method: &Method, jparams: &Vec<Param>) -> Vec<Param> {
         let mut new_param: Vec<Param> = Vec::new();
 
-        for mut param in params {
+        for mut param in method.parameters.clone() {
             let mut found = false;
             for i in 0..jparams.len() {
                 if param.name == jparams[i].name {
@@ -368,25 +361,8 @@ pub mod parse {
                 new_param.push(Param {
                     name: param.name.clone(),
                     var_type: param.var_type.clone(),
-                    desc: "No description found".to_string(),
+                    desc: String::new(),
                 });
-
-                if lint {
-                    jdoc_err.push_str(
-                        "\tJavadoc parameter not found "
-                            .yellow()
-                            .to_string()
-                            .as_str(),
-                    );
-                    jdoc_err.push_str(
-                        format!(
-                            "{} in method: {} (Line: {})\n",
-                            param.name,
-                            method.name.clone(),
-                            method.line_num
-                        ).as_str(),
-                    );
-                }
             }
         }
 

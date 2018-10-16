@@ -122,3 +122,57 @@ fn test_doc_lex() {
     assert_eq!(Token::Symbol(String::from("The")), tokens[23]);
     assert_eq!(Token::Symbol(String::from("value")), tokens[24]);
 }
+
+#[test]
+fn test_param_match() {
+    let mut method = Method::new();
+    let mut params: Vec<Param> = Vec::new();
+
+    method.add_param(Param {
+        desc: String::new(),
+        name: String::from("testParam1"),
+        var_type: String::from("String"),
+    });
+    method.add_param(Param {
+        desc: String::new(),
+        name: String::from("mapOfLists"),
+        var_type: String::from("Map<String, List<String>>"),
+    });
+    method.add_param(Param {
+        desc: String::new(),
+        name: String::from("ParamEdgeCase1_IHOPEThisWorks"),
+        var_type: String::from("Map<List<Object>, Map<String, List<String>>>"),
+    });
+    params.push(Param {
+        desc: String::from("A map of lists"),
+        name: String::from("mapOfLists"),
+        var_type: String::new(),
+    });
+    params.push(Param {
+        desc: String::from("A sample string parameter"),
+        name: String::from("testParam1"),
+        var_type: String::new(),
+    });
+    params.push(Param {
+        desc: String::from("An edge case parameter :)"),
+        name: String::from("ParamEdgeCase1_IHOPEThisWorks"),
+        var_type: String::new(),
+    });
+
+    let res = match_params(&method, &params);
+
+    assert_eq!(res[0].name, String::from("testParam1"));
+    assert_eq!(res[0].desc, String::from("A sample string parameter"));
+    assert_eq!(res[0].var_type, String::from("String"));
+
+    assert_eq!(res[1].name, String::from("mapOfLists"));
+    assert_eq!(res[1].desc, String::from("A map of lists"));
+    assert_eq!(res[1].var_type, String::from("Map<String, List<String>>"));
+
+    assert_eq!(res[2].name, String::from("ParamEdgeCase1_IHOPEThisWorks"));
+    assert_eq!(res[2].desc, String::from("An edge case parameter :)"));
+    assert_eq!(
+        res[2].var_type,
+        String::from("Map<List<Object>, Map<String, List<String>>>")
+    );
+}
