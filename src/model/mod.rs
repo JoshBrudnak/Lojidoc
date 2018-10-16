@@ -17,6 +17,7 @@ pub mod model {
     pub use model::contents::ApplicationDoc;
     pub use model::doc::Doc;
     pub use model::enumeration::Enumeration;
+    pub use model::enumeration::EnumField;
     pub use model::exception::Exception;
     pub use model::interface::Interface;
     pub use model::member::Member;

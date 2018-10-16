@@ -11,6 +11,8 @@ pub mod parse {
     use model::model::Object;
     use model::model::ObjectState;
     use model::model::ObjectType;
+    use model::model::Enumeration;
+    use model::model::EnumField;
     use model::model::Param;
 
     use colored::*;
@@ -18,7 +20,6 @@ pub mod parse {
     use std::io::BufReader;
     use std::io::Read;
     use std::path::Path;
-
 
     /// Handles token streams for javadoc comments and returns a `Doc` struct
     /// containing the information parsed from the javadoc comment.
@@ -317,6 +318,29 @@ pub mod parse {
 
         member
     }
+    /// Handles token streams for member variables and returns a `Member` struct
+    /// Containing the member variable's data
+    ///
+    /// # Arguments
+    ///
+    /// * `gram_parts` - A vector of tokens in the member variable expression
+    fn get_enum_fields(gram_parts: Vec<Stream>) -> Vec<EnumField> {
+        let mut fields: Vec<EnumField>  = Vec::new();
+
+        for i in 0..gram_parts.len() {
+            match gram_parts[i].clone() {
+                Stream::Variable(var) => {
+                    fields.push(EnumField {
+                        name: var,
+                        value: i.to_string(),
+                    })
+                }
+                _ => println!("Enumeration pattern not supported"),
+            }
+        }
+
+        fields
+    }
 
     fn match_params(
         method: &mut Method,
@@ -517,7 +541,7 @@ pub mod parse {
         let mut ignore = false;
         let mut object = Object::new();
         let mut in_object = false;
-        let mut parse_state = ParseState::new();
+        let mut parse_state = ParseState::Other;
         let mut doc = false;
         let mut comment = false;
         let mut jdoc = Doc::new();
@@ -554,7 +578,7 @@ pub mod parse {
                             if !doc && !comment {
                                 object.ch_state(ObjectState::Class);
                                 gram_parts.push(Stream::Object(key.to_string()));
-                                parse_state.ch_class(true);
+                                parse_state = ParseState::Class;
                             }
                             in_object = true;
                         }
@@ -562,7 +586,7 @@ pub mod parse {
                             if !doc && !comment {
                                 object.ch_state(ObjectState::Interface);
                                 gram_parts.push(Stream::Object(key.to_string()));
-                                parse_state.ch_interface(true);
+                                parse_state = ParseState::Interface;
                             }
                             in_object = true;
                         }
@@ -570,7 +594,7 @@ pub mod parse {
                             if !doc && !comment {
                                 object.ch_state(ObjectState::Enumeration);
                                 gram_parts.push(Stream::Object(key.to_string()));
-                                parse_state.ch_enum(true);
+                                parse_state = ParseState::Enum;
                             }
                             in_object = true;
                         }
@@ -611,7 +635,7 @@ pub mod parse {
                         "*/" => {
                             if doc {
                                 jdoc = get_doc(&doc_tokens);
-                                parse_state = ParseState::new();
+                                parse_state = ParseState::Other;
                                 doc_tokens.clear();
                                 gram_parts.clear();
                             }
@@ -728,6 +752,9 @@ pub mod parse {
                                     ObjectState::Class => {
                                         object.add_variable(get_var(temp_gram, line_num.clone()))
                                     }
+                                    ObjectState::Enumeration => {
+                                        object.ch_fields(get_enum_fields(temp_gram))
+                                    }
                                     _ => object.add_method(get_method(
                                         temp_gram,
                                         &jdoc,
@@ -736,13 +763,14 @@ pub mod parse {
                                 }
                             }
                         }
-                        "{" => {
-                            if parse_state.interface || parse_state.class {
-                                get_object(temp_gram.clone(), &jdoc, &mut object);
-                            } else {
-                                object.add_method(get_method(temp_gram, &jdoc, line_num.clone()));
+                        "{" => match parse_state {
+                            ParseState::Interface | ParseState::Class | ParseState::Enum => {
+                                get_object(temp_gram.clone(), &jdoc, &mut object)
                             }
-                        }
+                            ParseState::Other => {
+                                object.add_method(get_method(temp_gram, &jdoc, line_num.clone()))
+                            }
+                        },
                         _ => {
                             if comment {
                                 comment = false;
@@ -752,7 +780,7 @@ pub mod parse {
                         }
                     }
 
-                    parse_state = ParseState::new();
+                    parse_state = ParseState::Other;
                     jdoc = Doc::new();
                     gram_parts.clear();
                     symbols.clear();

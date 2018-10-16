@@ -3,14 +3,14 @@ use model::member::Member;
 use model::method::Method;
 
 #[derive(Debug)]
-pub struct EnumerationField {
+pub struct EnumField {
     pub name: String,
     pub value: String,
 }
 
-impl EnumerationField {
-    pub fn clone(&self) -> EnumerationField {
-        EnumerationField {
+impl EnumField {
+    pub fn clone(&self) -> EnumField {
+        EnumField {
             name: self.name.clone(),
             value: self.value.clone(),
         }
@@ -34,7 +34,7 @@ pub struct Enumeration {
     pub interfaces: Vec<String>,
     pub dependencies: Vec<String>,
     pub modifiers: Vec<String>,
-    pub fields: Vec<EnumerationField>,
+    pub fields: Vec<EnumField>,
     pub methods: Vec<Method>,
     pub variables: Vec<Member>,
 }
@@ -132,7 +132,7 @@ impl Enumeration {
     pub fn add_dependency(&mut self, value: String) {
         self.dependencies.push(value);
     }
-    pub fn add_field(&mut self, value: EnumerationField) {
+    pub fn add_field(&mut self, value: EnumField) {
         self.fields.push(value);
     }
     pub fn add_variable(&mut self, value: Member) {

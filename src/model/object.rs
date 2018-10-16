@@ -1,28 +1,17 @@
 use model::class::Class;
+use model::enumeration::EnumField;
 use model::enumeration::Enumeration;
-use model::enumeration::EnumerationField;
 use model::exception::Exception;
 use model::interface::Interface;
 use model::member::Member;
 use model::method::Method;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ObjectState {
     Class,
     Interface,
     Enumeration,
     Unset,
-}
-
-impl ObjectState {
-    pub fn clone(&self) -> ObjectState {
-        match self {
-            ObjectState::Class => ObjectState::Class,
-            ObjectState::Interface => ObjectState::Interface,
-            ObjectState::Enumeration => ObjectState::Enumeration,
-            ObjectState::Unset => ObjectState::Unset,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -43,7 +32,7 @@ pub struct Object {
     pub exceptions: Vec<Exception>,
     pub interfaces: Vec<String>,
     pub dependencies: Vec<String>,
-    pub fields: Vec<EnumerationField>,
+    pub fields: Vec<EnumField>,
     pub modifiers: Vec<String>,
     pub methods: Vec<Method>,
     pub variables: Vec<Member>,
@@ -70,50 +59,6 @@ impl Object {
             modifiers: Vec::new(),
             variables: Vec::new(),
             methods: Vec::new(),
-        }
-    }
-    pub fn clone(&mut self) -> Object {
-        let mut new_methods = Vec::new();
-        let mut new_vars = Vec::new();
-        let mut new_mods = Vec::new();
-        let mut new_except = Vec::new();
-        let mut new_fields = Vec::new();
-
-        for i in 0..self.methods.len() {
-            new_methods.push(self.methods[i].clone());
-        }
-        for i in 0..self.variables.len() {
-            new_vars.push(self.variables[i].clone());
-        }
-        for i in 0..self.modifiers.len() {
-            new_mods.push(self.modifiers[i].clone());
-        }
-        for i in 0..self.exceptions.len() {
-            new_except.push(self.exceptions[i].clone());
-        }
-        for i in 0..self.fields.len() {
-            new_fields.push(self.fields[i].clone());
-        }
-
-        Object {
-            state: self.state.clone(),
-            parent: self.parent.clone(),
-            file_path: self.file_path.clone(),
-            package_name: self.package_name.clone(),
-            license: self.license.clone(),
-            dependencies: self.dependencies.clone(),
-            deprecation: self.deprecation.clone(),
-            access: self.access.clone(),
-            version: self.version.clone(),
-            author: self.author.clone(),
-            name: self.name.clone(),
-            description: self.description.clone(),
-            exceptions: new_except,
-            interfaces: self.interfaces.clone(),
-            fields: new_fields,
-            modifiers: new_mods,
-            variables: new_vars,
-            methods: new_methods,
         }
     }
     pub fn to_class(&mut self) -> Class {
@@ -230,9 +175,6 @@ impl Object {
     pub fn ch_license(&mut self, value: String) {
         self.license = value;
     }
-    pub fn ch_file_path(&mut self, value: String) {
-        self.file_path = value;
-    }
     pub fn ch_package_name(&mut self, value: String) {
         self.package_name = value;
     }
@@ -241,6 +183,9 @@ impl Object {
     }
     pub fn ch_description(&mut self, value: String) {
         self.description = value;
+    }
+    pub fn ch_fields(&mut self, value: Vec<EnumField>) {
+        self.fields = value;
     }
     pub fn ch_parent(&mut self, value: String) {
         self.parent = value;

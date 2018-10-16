@@ -12,6 +12,7 @@ pub mod document {
     use colored::*;
     use model::contents::ApplicationDoc;
     use model::model::Class;
+    use model::model::Enumeration;
     use model::model::Interface;
     use model::model::Member;
     use model::model::Method;
@@ -225,6 +226,78 @@ pub mod document {
         doc
     }
 
+    /// Generates the markdown documentation for a enumeration
+    ///
+    /// # Arguments
+    ///
+    /// * `class` - The class struct containing the javadoc data
+    pub fn gen_enum_docs(enum_ob: Enumeration) -> String {
+        let mut doc = String::new();
+
+        if enum_ob.file_path != "" {
+            doc.push_str(
+                format!(
+                    "# Class {} [[src]]({})  \n\n",
+                    enum_ob.name, enum_ob.file_path
+                ).as_str(),
+            );
+        } else {
+            doc.push_str(format!("# Class {}\n\n", enum_ob.name).as_str());
+        }
+
+        if enum_ob.license != "" {
+            doc.push_str("<details>  \n");
+            doc.push_str("  <summary>  \n");
+            doc.push_str("    Show license  \n\n");
+            doc.push_str("  </summary>  \n");
+
+            doc.push_str("  <ul>  \n");
+            doc.push_str(enum_ob.license.as_str());
+            doc.push_str("  </ul>  \n");
+            doc.push_str("</details>  \n\n");
+            doc.push_str("<br/>");
+        }
+
+        doc.push_str(format!("Access: {}  \n", enum_ob.access.trim()).as_str());
+        if enum_ob.description.as_str() != "" {
+            doc.push_str(
+                format!("Description:  \n > {}  \n\n", enum_ob.description.trim()).as_str(),
+            );
+        }
+        if enum_ob.author != "" {
+            doc.push_str(format!("Author: {}  \n", enum_ob.author).as_str());
+        }
+        if enum_ob.version != "" {
+            doc.push_str(format!("Since version: {}  \n", enum_ob.version).as_str());
+        }
+
+        if enum_ob.interfaces.len() > 0 {
+            doc.push_str("Interfaces:  \n");
+
+            for inter in enum_ob.interfaces {
+                doc.push_str(format!("- {}  \n", inter).as_str());
+            }
+            doc.push_str("\n");
+        }
+
+        doc.push_str(format!("package: {}  \n\n", enum_ob.package_name.trim()).as_str());
+
+        doc.push_str("## Dependencies\n\n");
+        doc.push_str("<details>  \n");
+        doc.push_str("  <summary>  \n");
+        doc.push_str("    Show dependencies  \n");
+        doc.push_str("  </summary>  \n");
+
+        doc.push_str("  <ul>  \n");
+        for dep in enum_ob.dependencies {
+            doc.push_str(format!("<li>{}</li>\n", dep).as_str());
+        }
+        doc.push_str("  </ul>  \n");
+        doc.push_str("</details>  \n\n");
+
+        doc
+    }
+
     /// Generates the markdown documentation for the member variables of a class
     ///
     /// # Arguments
@@ -427,6 +500,23 @@ pub mod document {
             app_doc.add_package_class(inter.package_name, inter.name.clone());
 
             println!("{}.{} was created", inter.name, "md");
+        }
+
+        for mut enumeration in proj.enumerations {
+            let name = format!("{}/{}.{}", dest, enumeration.name, "md");
+            let mut file = File::create(name).unwrap();
+
+            let mut doc = gen_enum_docs(enumeration.clone());
+            doc.push_str(
+                gen_var_docs(enumeration.variables, enumeration.file_path.clone()).as_str(),
+            );
+            doc.push_str(gen_method_docs(enumeration.methods, enumeration.file_path).as_str());
+            file.write(doc.as_str().as_bytes())
+                .expect("Not able to write to file");
+
+            app_doc.add_package_class(enumeration.package_name, enumeration.name.clone());
+
+            println!("{}.{} was created", enumeration.name, "md");
         }
 
         let mut app_file = File::create(format!("{}/Contents.md", dest)).unwrap();

@@ -9,18 +9,6 @@ impl Package {
     pub fn add_class(&mut self, class_name: String) {
         self.members.push(class_name);
     }
-    pub fn clone(&mut self) -> Package {
-        let mut new_members: Vec<String> = Vec::new();
-
-        for m in self.members.clone() {
-            new_members.push(m);
-        }
-
-        Package {
-            name: self.name.clone(),
-            members: new_members,
-        }
-    }
 }
 
 /// Struct representing all the application data

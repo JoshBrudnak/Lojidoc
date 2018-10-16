@@ -147,34 +147,10 @@ pub mod grammar {
     }
 
     /// Struct that represents the parsing state of the high level java declarations
-    pub struct ParseState {
-        pub class: bool,
-        pub interface: bool,
-        pub enum_ob: bool,
-        pub doc: bool,
-        pub comment: bool,
-        pub doc_ready: bool,
-    }
-
-    impl ParseState {
-        pub fn new() -> ParseState {
-            ParseState {
-                class: false,
-                interface: false,
-                enum_ob: false,
-                doc: false,
-                comment: false,
-                doc_ready: false,
-            }
-        }
-        pub fn ch_class(&mut self, value: bool) {
-            self.class = value;
-        }
-        pub fn ch_enum(&mut self, value: bool) {
-            self.enum_ob = value;
-        }
-        pub fn ch_interface(&mut self, value: bool) {
-            self.interface = value;
-        }
+    pub enum ParseState {
+        Class,
+        Interface,
+        Enum,
+        Other,
     }
 }
