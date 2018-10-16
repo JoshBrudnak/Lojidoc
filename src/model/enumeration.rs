@@ -40,26 +40,6 @@ pub struct Enumeration {
 }
 
 impl Enumeration {
-    pub fn new() -> Enumeration {
-        Enumeration {
-            package_name: String::new(),
-            file_path: String::new(),
-            dependencies: Vec::new(),
-            deprecation: String::new(),
-            license: String::new(),
-            interfaces: Vec::new(),
-            access: String::new(),
-            version: String::new(),
-            author: String::new(),
-            name: String::new(),
-            exceptions: Vec::new(),
-            description: String::new(),
-            modifiers: Vec::new(),
-            fields: Vec::new(),
-            variables: Vec::new(),
-            methods: Vec::new(),
-        }
-    }
     pub fn clone(&mut self) -> Enumeration {
         let mut new_methods = Vec::new();
         let mut new_vars = Vec::new();
@@ -102,49 +82,7 @@ impl Enumeration {
             methods: new_methods,
         }
     }
-    pub fn ch_access(&mut self, value: String) {
-        self.access = value;
-    }
-    pub fn ch_license(&mut self, value: String) {
-        self.license = value;
-    }
     pub fn ch_file_path(&mut self, value: String) {
         self.file_path = value;
-    }
-    pub fn ch_package_name(&mut self, value: String) {
-        self.package_name = value;
-    }
-    pub fn ch_name(&mut self, value: String) {
-        self.name = value;
-    }
-    pub fn ch_description(&mut self, value: String) {
-        self.description = value;
-    }
-    pub fn ch_version(&mut self, value: String) {
-        self.deprecation = value;
-    }
-    pub fn ch_author(&mut self, value: String) {
-        self.author = value;
-    }
-    pub fn add_method(&mut self, value: Method) {
-        self.methods.push(value);
-    }
-    pub fn add_dependency(&mut self, value: String) {
-        self.dependencies.push(value);
-    }
-    pub fn add_field(&mut self, value: EnumField) {
-        self.fields.push(value);
-    }
-    pub fn add_variable(&mut self, value: Member) {
-        self.variables.push(value);
-    }
-    pub fn add_interface(&mut self, value: String) {
-        self.interfaces.push(value);
-    }
-    pub fn add_modifier(&mut self, value: String) {
-        self.modifiers.push(value);
-    }
-    pub fn add_exception(&mut self, value: Exception) {
-        self.exceptions.push(value);
     }
 }

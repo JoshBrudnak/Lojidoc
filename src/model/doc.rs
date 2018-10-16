@@ -1,5 +1,5 @@
 use model::exception::Exception;
-use model::param::Param;
+use model::method::Param;
 
 /// Struct representing data contained in javadoc comments
 #[derive(Debug)]

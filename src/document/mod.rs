@@ -657,6 +657,35 @@ pub mod document {
             }
         }
 
+        for mut enum_ob in proj.enumerations {
+            let mut temp_err = String::new();
+
+            for v in enum_ob.variables {
+                temp_err.push_str(lint_var(&v).as_str());
+            }
+            for m in enum_ob.methods {
+                temp_err.push_str(lint_method(&m).as_str());
+            }
+
+            if temp_err != "" {
+                jdoc_errs.push_str(
+                    "Javadoc errors for enum "
+                        .green()
+                        .bold()
+                        .to_string()
+                        .as_str(),
+                );
+                jdoc_errs.push_str(
+                    format!(
+                        "{}\nFile: {}\n",
+                        enum_ob.name,
+                        enum_ob.file_path.as_str().blue().to_string()
+                    ).as_str(),
+                );
+                jdoc_errs.push_str(format!("{}\n", temp_err).as_str());
+            }
+        }
+
         jdoc_errs
     }
 

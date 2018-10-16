@@ -7,7 +7,6 @@ pub mod interface;
 pub mod member;
 pub mod method;
 pub mod object;
-pub mod param;
 pub mod project;
 
 pub mod model {
@@ -21,10 +20,10 @@ pub mod model {
     pub use model::exception::Exception;
     pub use model::interface::Interface;
     pub use model::member::Member;
+    pub use model::method::Param;
     pub use model::method::Method;
     pub use model::object::Object;
     pub use model::object::ObjectState;
-    pub use model::param::Param;
     pub use model::project::Project;
 
     pub enum ObjectType {

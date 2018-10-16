@@ -11,7 +11,6 @@ pub mod parse {
     use model::model::Object;
     use model::model::ObjectState;
     use model::model::ObjectType;
-    use model::model::Enumeration;
     use model::model::EnumField;
     use model::model::Param;
 

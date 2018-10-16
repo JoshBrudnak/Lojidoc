@@ -1,5 +1,12 @@
 use model::exception::Exception;
-use model::param::Param;
+
+#[derive(Debug, Clone)]
+/// Struct representing method parameter data contained in javadoc and method declaration
+pub struct Param {
+    pub desc: String,
+    pub name: String,
+    pub var_type: String,
+}
 
 #[derive(Debug)]
 /// Struct containing method data from the javadoc and method declaration
@@ -52,15 +59,6 @@ impl Method {
             description: self.description.clone(),
             return_type: self.return_type.clone(),
         }
-    }
-    pub fn clone_params(&mut self) -> Vec<Param> {
-        let mut new_params = Vec::new();
-
-        for i in 0..self.parameters.len() {
-            new_params.push(self.parameters[i].clone());
-        }
-
-        new_params
     }
     pub fn ch_line_num(&mut self, value: String) {
         self.line_num = value;
