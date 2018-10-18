@@ -773,24 +773,31 @@ pub mod document {
             None => (),
         };
 
-        Some(remote_url)
+        Some(str::replace(remote_url.as_str(), ".git", ""))
     }
 
     /// Combines the repo url with java file path to provide a link in the docs
     ///
     /// # Arguments
     ///
-    /// * `paths` - The java file path
-    /// * `context` - Url of the git or mercurial repository
+    /// * `path` - The java file path
     pub fn resolve_context(path: &PathBuf) -> String {
         let p = path.to_str().unwrap();
-        let repo_url = match get_repo_url(find_repo_home(p.to_string())) {
+        let mut context = match get_repo_url(find_repo_home(p.to_string())) {
             Some(url) => url,
             None => return String::new(),
         };
-        println!("{}", repo_url);
+        context.push_str("/tree/master");
 
-        format!("{}/tree/master", repo_url)
+        let line_vec: Vec<&str> = p.split("/").collect::<Vec<&str>>();
+        let mut part = line_vec[0].to_string();
+        part.push_str("/");
+        let repo_root = find_repo_home(p.to_string());
+        let line_vec: Vec<&str> = p.split(repo_root.as_str()).collect::<Vec<&str>>();
+        let mut new_context = context.clone();
+        new_context.push_str(line_vec.join("").as_str());
+
+        new_context
     }
 
     /// Creates a markdown book using mdbook. Uses the files in the generated documentation
