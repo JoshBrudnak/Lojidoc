@@ -1,5 +1,6 @@
 pub mod document {
     extern crate colored;
+    extern crate git2;
 
     use mdbook::MDBook;
 
@@ -10,6 +11,7 @@ pub mod document {
     use std::path::PathBuf;
 
     use colored::*;
+    use git2::Repository;
     use model::contents::ApplicationDoc;
     use model::model::Class;
     use model::model::Enumeration;
@@ -745,24 +747,50 @@ pub mod document {
         res
     }
 
+    fn get_repo_url(file_path: String) -> Option<String> {
+        let repo = match Repository::open(file_path) {
+            Ok(r) => r,
+            Err(_) => return None,
+        };
+        let config = match repo.config() {
+            Ok(c) => c,
+            Err(_) => return None,
+        };
+
+        let mut remote_url = String::new();
+        let mut remote_upstream: Option<String> = None;
+
+        for entry in &config.entries(None).unwrap() {
+            let entry = entry.unwrap();
+            match entry.name().unwrap() {
+                "remote.origin.url" => remote_url = entry.value().unwrap().to_string(),
+                "remote.upstream.url" => remote_upstream = Some(entry.value().unwrap().to_string()),
+                _ => (),
+            }
+        }
+        match remote_upstream {
+            Some(url) => remote_url = url.clone(),
+            None => (),
+        };
+
+        Some(remote_url)
+    }
+
     /// Combines the repo url with java file path to provide a link in the docs
     ///
     /// # Arguments
     ///
     /// * `paths` - The java file path
     /// * `context` - Url of the git or mercurial repository
-    pub fn resolve_context(path: &PathBuf, context: &String) -> String {
+    pub fn resolve_context(path: &PathBuf) -> String {
         let p = path.to_str().unwrap();
-        let line_vec: Vec<&str> = p.split("/").collect::<Vec<&str>>();
-        let mut part = line_vec[0].to_string();
-        part.push_str("/");
+        let repo_url = match get_repo_url(find_repo_home(p.to_string())) {
+            Some(url) => url,
+            None => return String::new(),
+        };
+        println!("{}", repo_url);
 
-        let repo_root = find_repo_home(p.to_string());
-        let line_vec: Vec<&str> = p.split(repo_root.as_str()).collect::<Vec<&str>>();
-        let mut new_context = context.clone();
-        new_context.push_str(line_vec.join("").as_str());
-
-        new_context
+        format!("{}/tree/master", repo_url)
     }
 
     /// Creates a markdown book using mdbook. Uses the files in the generated documentation

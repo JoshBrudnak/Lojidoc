@@ -2,6 +2,7 @@ extern crate clap;
 extern crate colored;
 extern crate mdbook;
 extern crate threadpool;
+extern crate git2;
 
 mod document;
 mod grammar;
@@ -68,14 +69,13 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>) {
 pub fn document_single(
     file_paths: Vec<PathBuf>,
     dest: String,
-    context: String,
     verbose: bool,
     book: bool,
 ) {
     let mut project: Project = Project::new();
 
     for file in file_paths.clone() {
-        let m_context = resolve_context(&file, &context);
+        let m_context = resolve_context(&file);
 
         match parse_file(&file, verbose) {
             ObjectType::Class(mut class) => {
@@ -109,7 +109,6 @@ pub fn document_single(
 pub fn document(
     file_paths: Vec<PathBuf>,
     dest: String,
-    context: String,
     verbose: bool,
     book: bool,
 ) {
@@ -126,19 +125,14 @@ pub fn document(
     for i in 0..pool_size {
         let file_cp = files.clone();
         let new_dest = safe_dest.clone();
-        let new_context = context.clone();
 
         pool.execute(move || {
             let mut project: Project = Project::new();
 
             for j in 0..4 {
                 if (i * 4) + j < size {
-                    let mut m_context = String::new();
                     let mut file = file_cp[(i * 4) + j].clone();
-
-                    if new_context != "" {
-                        m_context = resolve_context(&file, &new_context);
-                    }
+                    let m_context = resolve_context(&file);
 
                     match parse_file(&file, verbose) {
                         ObjectType::Class(mut class) => {
@@ -170,7 +164,7 @@ pub fn document(
 }
 
 fn main() {
-    let matches = App::new("Javadoc-To-Markdown")
+    let matches = App::new("Lojidoc")
         .version("0.2.1")
         .author("Josh Brudnak <jobrud314@gmail.com>")
         .about("A tool for generating markdown documentation for java projects")
@@ -180,11 +174,6 @@ fn main() {
                 .required(true)
                 .help("Set the input directory to use")
                 .index(1),
-        ).arg(
-            Arg::with_name("context")
-                .help("Set the context path of the project")
-                .value_name("FILE")
-                .short("c"),
         ).arg(
             Arg::with_name("book")
                 .value_name("FILE")
@@ -220,7 +209,6 @@ fn main() {
         .unwrap_or("./generated/")
         .to_string();
 
-    let context = matches.value_of("context").unwrap_or("").to_string();
     let book = matches.value_of("book").unwrap_or("").to_string();
     let file_paths = find_java_files(Path::new(dir.clone().as_str()));
     let multi_thread = matches.is_present("multi_thread");
@@ -245,11 +233,11 @@ fn main() {
         }
 
         if multi_thread {
-            document(file_paths, dest.clone(), context, verbose, gen_book);
+            document(file_paths, dest.clone(), verbose, gen_book);
         } else if lint {
             lint_javadoc(file_paths);
         } else {
-            document_single(file_paths, dest.clone(), context, verbose, gen_book);
+            document_single(file_paths, dest.clone(), verbose, gen_book);
         }
 
         if book != "" {

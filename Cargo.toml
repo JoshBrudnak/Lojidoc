@@ -17,6 +17,7 @@ exclude = [
 travis-ci = { repository = "JoshBrudnak/Lojidoc" }
 
 [dependencies]
+git2 = {version = "0.7.5", default-features = false}
 threadpool = "1.7.1"
 mdbook = "0.2.1"
 clap = "2.32"
