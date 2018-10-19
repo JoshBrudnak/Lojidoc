@@ -137,7 +137,7 @@ pub mod parse {
     ///
     /// * `gram_parts` - A vector of tokens from the object's declaration
     /// * `java_doc` - The java doc struct with the documentation for the class
-    /// * `class` - The Class stuct to be modified with the new information
+    /// * `class` - The Class struct to be modified with the new information
     fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, ob: &mut Object) {
         let mut implement = false;
         let mut exception = false;
