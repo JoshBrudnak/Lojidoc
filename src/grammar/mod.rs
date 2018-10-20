@@ -44,7 +44,7 @@ pub mod grammar {
             "final",
             "implements",
             "import",
-            "instanseof",
+            "instanceof",
             "interface",
             "native",
             "package",

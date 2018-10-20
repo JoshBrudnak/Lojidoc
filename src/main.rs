@@ -182,7 +182,7 @@ fn main() {
                 .help("Use mdbook to create a book for your generated documentation"),
         ).arg(
             Arg::with_name("lint")
-                .help("Check a java project for incorrent and missing javadocs")
+                .help("Check a java project for incorrect and missing javadocs")
                 .short("l"),
         ).arg(
             Arg::with_name("verbose")
