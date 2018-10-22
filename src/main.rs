@@ -29,16 +29,10 @@ use model::model::ObjectType;
 use model::model::Project;
 use parse::parse::parse_file;
 
-/// Handles linting javadocs without saving the documentation
-///
-/// # Arguments
-///
-/// * `file_paths` - A vector of the file paths of java files
-/// * `dest` - The file path where the markdown will be saved
-pub fn lint_javadoc(file_paths: Vec<PathBuf>) {
+fn get_project<'a>(files: &Vec<PathBuf>) -> Result<Project, &'a str> {
     let mut project: Project = Project::new();
 
-    for file in file_paths.clone() {
+    for file in files {
         match parse_file(&file, true) {
             ObjectType::Class(mut class) => {
                 class.ch_file_path(file.to_str().unwrap().to_string());
@@ -55,7 +49,7 @@ pub fn lint_javadoc(file_paths: Vec<PathBuf>) {
         }
     }
 
-    println!("{}", lint_project(project));
+    Ok(project)
 }
 
 /// Handles the single threaded option for running the application
@@ -72,28 +66,12 @@ pub fn document_single(
     verbose: bool,
     book: bool,
 ) {
-    let mut project: Project = Project::new();
-
-    for file in file_paths.clone() {
-        let m_context = resolve_context(&file);
-
-        match parse_file(&file, verbose) {
-            ObjectType::Class(mut class) => {
-                class.ch_file_path(m_context);
-                project.add_class(class.clone());
-            }
-            ObjectType::Interface(mut inter) => {
-                inter.ch_file_path(m_context);
-                project.add_interface(inter.clone());
-            }
-            ObjectType::Enumeration(mut enumeration) => {
-                enumeration.ch_file_path(m_context);
-                project.add_enumeration(enumeration.clone());
-            }
-        }
+    if verbose {
+        println!("{}", lint_project(get_project(&file_paths).unwrap()));
     }
 
-    generate_markdown(project, dest.as_str(), book);
+    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), book);
+
     println!(
         "\nDocumentation finished. Generated {} markdown files.",
         file_paths.len()
@@ -235,7 +213,7 @@ fn main() {
         if multi_thread {
             document(file_paths, dest.clone(), verbose, gen_book);
         } else if lint {
-            lint_javadoc(file_paths);
+            println!("{}", lint_project(get_project(&file_paths).unwrap()));
         } else {
             document_single(file_paths, dest.clone(), verbose, gen_book);
         }

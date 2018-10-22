@@ -601,7 +601,7 @@ pub mod document {
     pub fn lint_project(proj: Project) -> String {
         let mut jdoc_errs = String::new();
 
-        for mut class in proj.classes {
+        for class in proj.classes {
             let mut temp_err = String::new();
 
             for v in class.variables {
@@ -772,6 +772,19 @@ pub mod document {
             Some(url) => remote_url = url.clone(),
             None => (),
         };
+
+        if remote_url.starts_with("git@") {
+            let name_part = remote_url
+                .split("@")
+                .skip(1)
+                .collect::<Vec<&str>>()
+                .join("");
+
+            remote_url = format!(
+                "http://{}",
+                name_part.split(":").collect::<Vec<&str>>().join("/")
+            );
+        }
 
         Some(str::replace(remote_url.as_str(), ".git", ""))
     }
