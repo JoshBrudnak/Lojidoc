@@ -128,6 +128,17 @@ pub mod parse {
         }
     }
 
+    /// Enum that represents the state of parsing a object declaration
+    /// Useed for mapping symbols that occur after certain keywords in the token stream
+    pub enum ObjectParseState {
+        Implement,
+        Exception,
+        Parent,
+        ClassName,
+        Other,
+    }
+
+
     /// Handles token streams for object declarations and modifies the `Class` struct
     /// which is passed to the function.
     ///
@@ -139,65 +150,45 @@ pub mod parse {
     /// * `java_doc` - The java doc struct with the documentation for the class
     /// * `class` - The Class struct to be modified with the new information
     fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, ob: &mut Object) {
-        let mut implement = false;
-        let mut exception = false;
-        let mut parent = false;
-        let mut class_name = false;
+        let mut parse_state = ObjectParseState::Other;
 
         for i in 0..gram_parts.len() {
             match gram_parts[i].clone() {
                 Stream::Variable(var) => {
-                    if implement {
-                        ob.add_interface(var);
-                    } else if exception {
-                        ob.add_exception(Exception {
+                    match parse_state {
+                        ObjectParseState::Implement => ob.add_interface(var),
+                        ObjectParseState::Exception => ob.add_exception(
+                            Exception {
                             desc: String::new(),
                             exception_type: var,
-                        });
-                    } else if class_name {
-                        ob.ch_name(var);
-                        class_name = false;
-                    } else if parent {
-                        ob.ch_parent(var);
-                        parent = false;
+                        }),
+                    ObjectParseState::ClassName => ob.ch_name(var),
+                    ObjectParseState::Parent => ob.ch_parent(var),
+                    ObjectParseState::Other => (),
                     }
                 }
-                Stream::Object(_) => class_name = true,
+                Stream::Object(_) => parse_state = ObjectParseState::ClassName,
                 Stream::Access(key) => ob.ch_access(key),
                 Stream::Modifier(key) => ob.add_modifier(key),
-                Stream::Exception => {
-                    exception = true;
-                    implement = false;
-                    parent = false;
-                    class_name = false;
-                }
-                Stream::Implement => {
-                    exception = false;
-                    implement = true;
-                    parent = false;
-                    class_name = false;
-                }
-                Stream::Parent => {
-                    exception = false;
-                    implement = false;
-                    parent = true;
-                    class_name = false;
-                }
+                Stream::Exception => parse_state = ObjectParseState::Exception,
+                Stream::Implement => parse_state = ObjectParseState::Implement,
+                Stream::Parent => parse_state = ObjectParseState::Parent,
                 _ => println!("Class pattern not supported {:?}", gram_parts[i]),
             }
         }
 
-        if java_doc.description != "" {
-            ob.ch_description(java_doc.description.clone());
-        }
+        ob.ch_description(java_doc.description.clone());
+        ob.ch_author(java_doc.author.clone());
+        ob.ch_version(java_doc.version.clone());
+    }
 
-        if java_doc.author != "" {
-            ob.ch_author(java_doc.author.clone());
-        }
-
-        if java_doc.version != "" {
-            ob.ch_version(java_doc.version.clone());
-        }
+    /// Enum that represents the state of parsing a method declaration
+    /// Useed for mapping symbols that occur after certain keywords in the token stream
+    pub enum MethodParseState {
+        Exception,
+        MethodName,
+        ParamName,
+        Other,
     }
 
     /// Handles token streams for methods and returns a `Method` struct
@@ -209,50 +200,49 @@ pub mod parse {
     /// * `_java_doc` - The java doc struct with the documentation for the method
     fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc, line_num: String) -> Method {
         let mut method = Method::new();
-        let mut exception = false;
-        let mut method_name = false;
-        let mut param_name = false;
         let mut param_type = String::new();
+        let mut parse_state = MethodParseState::Other;
 
         for i in 0..gram_parts.len() {
             match gram_parts[i].clone() {
                 Stream::Variable(var) => {
-                    if exception {
+                    match parse_state {
+
+                        MethodParseState::Exception => {
                         if java_doc.exceptions.len() > 0 {
                             method.add_exception(Exception {
                                 desc: java_doc.exceptions[0].clone().desc,
                                 exception_type: var,
                             });
                         }
-                    } else if method_name {
-                        method.ch_method_name(var);
-                        method_name = false;
-                    } else if param_name {
+                    },
+                    MethodParseState::MethodName => method.ch_method_name(var),
+                    MethodParseState::ParamName => {
                         method.add_param(Param {
                             var_type: param_type.clone(),
                             name: var,
                             desc: String::new(),
                         });
-
                         param_type = String::new();
-                        param_name = false;
-                    } else if method.name == "" {
+                    }
+                    MethodParseState::Other => (),
+                    }
+                    if method.name == "" {
                         method.ch_return_type(var);
-                        method_name = true;
                     }
                 }
                 Stream::Type(key) => {
                     if method.return_type == "" {
                         method.ch_return_type(key);
-                        method_name = true;
+                        parse_state = MethodParseState::MethodName;
                     } else {
                         param_type = key;
-                        param_name = true;
+                        parse_state = MethodParseState::ParamName;
                     }
                 }
                 Stream::Access(key) => method.ch_privacy(key),
                 Stream::Modifier(key) => method.add_modifier(key),
-                Stream::Exception => exception = true,
+                Stream::Exception => parse_state = MethodParseState::Exception,
                 _ => println!("Method pattern not supported"),
             }
         }
