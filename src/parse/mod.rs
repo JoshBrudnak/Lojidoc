@@ -212,15 +212,15 @@ pub mod parse {
                         if java_doc.exceptions.len() > 0 {
                             method.add_exception(Exception {
                                 desc: java_doc.exceptions[0].clone().desc,
-                                exception_type: var,
+                                exception_type: var.clone(),
                             });
                         }
                     },
-                    MethodParseState::MethodName => method.ch_method_name(var),
+                    MethodParseState::MethodName => method.ch_method_name(var.clone()),
                     MethodParseState::ParamName => {
                         method.add_param(Param {
                             var_type: param_type.clone(),
-                            name: var,
+                            name: var.clone(),
                             desc: String::new(),
                         });
                         param_type = String::new();
@@ -228,7 +228,7 @@ pub mod parse {
                     MethodParseState::Other => (),
                     }
                     if method.name == "" {
-                        method.ch_return_type(var);
+                        method.ch_return_type(var.clone());
                     }
                 }
                 Stream::Type(key) => {
