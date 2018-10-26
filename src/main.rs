@@ -72,7 +72,7 @@ pub fn document_single(
         println!("{}", lint_project(get_project(&file_paths).unwrap()));
     }
 
-    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), book);
+    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), ignore, book);
 
     println!(
         "\nDocumentation finished. Generated {} markdown files.",
