@@ -153,6 +153,12 @@ fn main() {
                 .help("Set the input directory to use")
                 .index(1),
         ).arg(
+            Arg::with_name("ignore")
+                .value_name("STRING")
+                .required(false)
+                .short("i")
+                .help("Ignore fields with a certain permission"),
+        ).arg(
             Arg::with_name("book")
                 .value_name("FILE")
                 .required(false)
