@@ -305,7 +305,8 @@ pub mod document {
     /// # Arguments
     ///
     /// * `variables` - The vector of class methods to be documented
-    pub fn gen_var_docs(variables: Vec<Member>, path: String) -> String {
+    /// * `ignore` - Variables with this permission will be skipped, if not empty
+    pub fn gen_var_docs(variables: Vec<Member>, path: String, ignore: String) -> String {
         let mut doc = String::new();
 
         if variables.len() > 0 {
@@ -317,79 +318,28 @@ pub mod document {
         }
 
         for member in variables {
-            if path != "" {
-                let mut file_path = path.clone();
-                file_path.push_str(format!("#L{}", member.line_num).as_str());
-                doc.push_str(
-                    format!(
-                        "#### {} {} [[src]]({})\n\n",
-                        member.var_type, member.name, file_path
-                    ).as_str(),
-                );
-            } else {
-                doc.push_str(format!("#### {} {}\n\n", member.var_type, member.name).as_str());
-            }
-
-            if member.desc != "" {
-                doc.push_str(format!("+ Description: {}  \n", member.desc).as_str());
-            }
-
-            if member.access == "" {
-                doc.push_str("+ Access: package-private  \n");
-            } else {
-                doc.push_str(format!("+ Access: {}  \n", member.access).as_str());
-            }
-
-            if member.modifiers.len() > 0 {
-                doc.push_str("+ Modifiers: ");
-
-                for mem in member.modifiers {
-                    doc.push_str(format!("{} ", mem).as_str())
-                }
-
-                doc.push_str("\n");
-            }
-
-            doc.push_str("\n");
-        }
-
-        doc
-    }
-
-    /// Generates the markdown documentation for the methods of a class
-    ///
-    /// # Arguments
-    ///
-    /// * `methods` - The vector of class methods to be documented
-    pub fn gen_method_docs(methods: Vec<Method>, path: String) -> String {
-        let mut doc = String::new();
-
-        if methods.len() > 0 {
-            doc.push_str("## Methods\n\n");
-        } else {
-            doc.push_str("## No methods in this class\n\n");
-
-            return doc;
-        }
-
-        for member in methods {
-            if member.name != String::from("") {
+            if member.access != ignore {
                 if path != "" {
                     let mut file_path = path.clone();
                     file_path.push_str(format!("#L{}", member.line_num).as_str());
                     doc.push_str(
-                        format!("### {} [[src]]({})\n\n", member.name, file_path).as_str(),
+                        format!(
+                            "#### {} {} [[src]]({})\n\n",
+                            member.var_type, member.name, file_path
+                        ).as_str(),
                     );
                 } else {
-                    doc.push_str(format!("### {}\n\n", member.name).as_str());
+                    doc.push_str(format!("#### {} {}\n\n", member.var_type, member.name).as_str());
                 }
 
-                doc.push_str(format!("+ Description: {}  \n", member.description).as_str());
+                if member.desc != "" {
+                    doc.push_str(format!("+ Description: {}  \n", member.desc).as_str());
+                }
 
-                if member.privacy == "" {
+                if member.access == "" {
                     doc.push_str("+ Access: package-private  \n");
                 } else {
-                    doc.push_str(format!("+ Access: {}  \n", member.privacy).as_str());
+                    doc.push_str(format!("+ Access: {}  \n", member.access).as_str());
                 }
 
                 if member.modifiers.len() > 0 {
@@ -402,33 +352,89 @@ pub mod document {
                     doc.push_str("\n");
                 }
 
-                for exception in member.exceptions {
-                    doc.push_str(
-                        format!(
-                            "+ Throws {}: {}  \n",
-                            exception.exception_type, exception.desc
-                        ).as_str(),
-                    );
-                }
-                doc.push_str(format!("+ return: {}  \n\n", member.return_type).as_str());
+                doc.push_str("\n");
+            }
+        }
 
-                if member.parameters.len() > 0 {
-                    doc.push_str("| Name | Type | Description |  \n");
-                    doc.push_str("| ----- | ----- | ----- |  \n");
-                } else {
-                    doc.push_str("This method has no parameters.  \n");
-                }
+        doc
+    }
 
-                for param in member.parameters {
-                    doc.push_str(
-                        format!(
-                            "| {} | {} | {} |  \n",
-                            param.name, param.var_type, param.desc
-                        ).as_str(),
-                    );
-                }
+    /// Generates the markdown documentation for the methods of a class
+    ///
+    /// # Arguments
+    ///
+    /// * `methods` - The vector of class methods to be documented
+    /// * `ignore` - Methods with this permission will be skipped, if not empty
+    pub fn gen_method_docs(methods: Vec<Method>, path: String, ignore: String) -> String {
+        let mut doc = String::new();
 
-                doc.push_str("\n\n");
+        if methods.len() > 0 {
+            doc.push_str("## Methods\n\n");
+        } else {
+            doc.push_str("## No methods in this class\n\n");
+
+            return doc;
+        }
+
+        for member in methods {
+            if member.privacy != ignore {
+                if member.name != String::from("") {
+                    if path != "" {
+                        let mut file_path = path.clone();
+                        file_path.push_str(format!("#L{}", member.line_num).as_str());
+                        doc.push_str(
+                            format!("### {} [[src]]({})\n\n", member.name, file_path).as_str(),
+                        );
+                    } else {
+                        doc.push_str(format!("### {}\n\n", member.name).as_str());
+                    }
+
+                    doc.push_str(format!("+ Description: {}  \n", member.description).as_str());
+
+                    if member.privacy == "" {
+                        doc.push_str("+ Access: package-private  \n");
+                    } else {
+                        doc.push_str(format!("+ Access: {}  \n", member.privacy).as_str());
+                    }
+
+                    if member.modifiers.len() > 0 {
+                        doc.push_str("+ Modifiers: ");
+
+                        for mem in member.modifiers {
+                            doc.push_str(format!("{} ", mem).as_str())
+                        }
+
+                        doc.push_str("\n");
+                    }
+
+                    for exception in member.exceptions {
+                        doc.push_str(
+                            format!(
+                                "+ Throws {}: {}  \n",
+                                exception.exception_type, exception.desc
+                            ).as_str(),
+                        );
+                    }
+                    doc.push_str(format!("+ return: {}  \n\n", member.return_type).as_str());
+
+                    if member.parameters.len() > 0 {
+                        doc.push_str("| Name | Type | Description |  \n");
+                        doc.push_str("| ----- | ----- | ----- |  \n");
+                    } else {
+                        doc.push_str("This method has no parameters.  \n");
+                    }
+
+                    for param in member.parameters {
+                        doc.push_str(
+                            format!(
+                                "| {} | {} | {} |  \n",
+                                param.name, param.var_type, param.desc
+                            ).as_str(),
+                        );
+                    }
+
+                    doc.push_str("\n\n");
+                }
             }
         }
 
@@ -462,8 +468,9 @@ pub mod document {
     ///
     /// * `class` - The class struct containing the java documentation data
     /// * `dest` - The file path where the markdown file will be saved
+    /// * `ignore` - Permission to ignore when parsing member variables and methods
     /// * `context` - The project context e.g. `github.com/user/repo`
-    pub fn generate_markdown(proj: Project, dest: &str, book: bool) {
+    pub fn generate_markdown(proj: Project, dest: &str, ignore: String, book: bool) {
         let mut app_doc = ApplicationDoc::new();
 
         for mut class in proj.classes {
@@ -471,8 +478,12 @@ pub mod document {
             let mut file = File::create(name).unwrap();
 
             let mut doc = gen_class_docs(class.clone());
-            doc.push_str(gen_var_docs(class.variables, class.file_path.clone()).as_str());
-            doc.push_str(gen_method_docs(class.methods, class.file_path).as_str());
+
+            let ignore_cp_1 = ignore.clone();
+            let ignore_cp_2 = ignore.clone();
+
+            doc.push_str(gen_var_docs(class.variables, class.file_path.clone(), ignore_cp_1).as_str());
+            doc.push_str(gen_method_docs(class.methods, class.file_path, ignore_cp_2).as_str());
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
@@ -494,8 +505,12 @@ pub mod document {
             let mut file = File::create(name).unwrap();
 
             let mut doc = gen_interface_docs(inter.clone());
-            doc.push_str(gen_var_docs(inter.variables, inter.file_path.clone()).as_str());
-            doc.push_str(gen_method_docs(inter.methods, inter.file_path).as_str());
+
+            let ignore_cp_1 = ignore.clone();
+            let ignore_cp_2 = ignore.clone();
+
+            doc.push_str(gen_var_docs(inter.variables, inter.file_path.clone(), ignore_cp_1).as_str());
+            doc.push_str(gen_method_docs(inter.methods, inter.file_path, ignore_cp_2).as_str());
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
@@ -509,10 +524,14 @@ pub mod document {
             let mut file = File::create(name).unwrap();
 
             let mut doc = gen_enum_docs(enumeration.clone());
+
+            let ignore_cp_1 = ignore.clone();
+            let ignore_cp_2 = ignore.clone();
+
             doc.push_str(
-                gen_var_docs(enumeration.variables, enumeration.file_path.clone()).as_str(),
+                gen_var_docs(enumeration.variables, enumeration.file_path.clone(), ignore_cp_1).as_str(),
             );
-            doc.push_str(gen_method_docs(enumeration.methods, enumeration.file_path).as_str());
+            doc.push_str(gen_method_docs(enumeration.methods, enumeration.file_path, ignore_cp_2).as_str());
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
