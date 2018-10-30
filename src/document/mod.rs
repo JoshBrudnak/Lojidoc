@@ -479,11 +479,8 @@ pub mod document {
 
             let mut doc = gen_class_docs(class.clone());
 
-            let ignore_cp_1 = ignore.clone();
-            let ignore_cp_2 = ignore.clone();
-
-            doc.push_str(gen_var_docs(class.variables, class.file_path.clone(), ignore_cp_1).as_str());
-            doc.push_str(gen_method_docs(class.methods, class.file_path, ignore_cp_2).as_str());
+            doc.push_str(gen_var_docs(class.variables, class.file_path.clone(), ignore.clone()).as_str());
+            doc.push_str(gen_method_docs(class.methods, class.file_path, ignore.clone()).as_str());
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
@@ -506,11 +503,8 @@ pub mod document {
 
             let mut doc = gen_interface_docs(inter.clone());
 
-            let ignore_cp_1 = ignore.clone();
-            let ignore_cp_2 = ignore.clone();
-
-            doc.push_str(gen_var_docs(inter.variables, inter.file_path.clone(), ignore_cp_1).as_str());
-            doc.push_str(gen_method_docs(inter.methods, inter.file_path, ignore_cp_2).as_str());
+            doc.push_str(gen_var_docs(inter.variables, inter.file_path.clone(), ignore.clone()).as_str());
+            doc.push_str(gen_method_docs(inter.methods, inter.file_path, ignore.clone()).as_str());
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
@@ -525,13 +519,10 @@ pub mod document {
 
             let mut doc = gen_enum_docs(enumeration.clone());
 
-            let ignore_cp_1 = ignore.clone();
-            let ignore_cp_2 = ignore.clone();
-
             doc.push_str(
-                gen_var_docs(enumeration.variables, enumeration.file_path.clone(), ignore_cp_1).as_str(),
+                gen_var_docs(enumeration.variables, enumeration.file_path.clone(), ignore.clone()).as_str(),
             );
-            doc.push_str(gen_method_docs(enumeration.methods, enumeration.file_path, ignore_cp_2).as_str());
+            doc.push_str(gen_method_docs(enumeration.methods, enumeration.file_path, ignore.clone()).as_str());
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
