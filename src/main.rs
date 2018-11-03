@@ -20,7 +20,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use threadpool::ThreadPool;
 
-use document::document::find_java_files;
+use document::document::find_file_type;
 use document::document::gen_md_book;
 use document::document::generate_markdown;
 use document::document::lint_project;
@@ -65,12 +65,13 @@ pub fn document_single(
     dest: String,
     verbose: bool,
     book: bool,
+    clean: bool,
 ) {
     if verbose {
         println!("{}", lint_project(get_project(&file_paths).unwrap()));
     }
 
-    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), book);
+    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), book, clean);
 
     println!(
         "\nDocumentation finished. Generated {} markdown files.",
@@ -89,6 +90,7 @@ pub fn document(
     dest: String,
     verbose: bool,
     book: bool,
+    clean: bool,
 ) {
     let files = Arc::new(file_paths);
     let size = files.len();
@@ -129,7 +131,7 @@ pub fn document(
                 }
             }
 
-            generate_markdown(project, new_dest.as_str(), book);
+            generate_markdown(project, new_dest.as_str(), book, clean);
         });
     }
 
@@ -143,7 +145,7 @@ pub fn document(
 
 fn main() {
     let matches = App::new("Lojidoc")
-        .version("0.2.1")
+        .version("0.3.1")
         .author("Josh Brudnak <jobrud314@gmail.com>")
         .about("A tool for generating markdown documentation for java projects")
         .arg(
@@ -162,6 +164,10 @@ fn main() {
             Arg::with_name("lint")
                 .help("Check a java project for incorrect and missing javadocs")
                 .short("l"),
+        ).arg(
+            Arg::with_name("clean")
+                .help("Delete the destination directory before generating documentation")
+                .short("c"),
         ).arg(
             Arg::with_name("verbose")
                 .short("v")
@@ -188,9 +194,10 @@ fn main() {
         .to_string();
 
     let book = matches.value_of("book").unwrap_or("").to_string();
-    let file_paths = find_java_files(Path::new(dir.clone().as_str()));
+    let file_paths = find_file_type(Path::new(dir.clone().as_str()), vec!["java"]);
     let multi_thread = matches.is_present("multi_thread");
     let lint = matches.is_present("lint");
+    let clean = matches.is_present("clean");
     let verbose = matches.is_present("verbose");
 
     let gen_book = if book != "" { true } else { false };
@@ -211,11 +218,11 @@ fn main() {
         }
 
         if multi_thread {
-            document(file_paths, dest.clone(), verbose, gen_book);
+            document(file_paths, dest.clone(), verbose, gen_book, clean);
         } else if lint {
             println!("{}", lint_project(get_project(&file_paths).unwrap()));
         } else {
-            document_single(file_paths, dest.clone(), verbose, gen_book);
+            document_single(file_paths, dest.clone(), verbose, gen_book, clean);
         }
 
         if book != "" {

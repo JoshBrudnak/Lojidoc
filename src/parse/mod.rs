@@ -173,7 +173,10 @@ pub mod parse {
                 Stream::Exception => parse_state = ObjectParseState::Exception,
                 Stream::Implement => parse_state = ObjectParseState::Implement,
                 Stream::Parent => parse_state = ObjectParseState::Parent,
-                _ => println!("Class pattern not supported {:?}", gram_parts[i]),
+                _ => {
+                    println!("Class pattern not supported {:?}", gram_parts[i]);
+                    println!("{:?}", gram_parts);
+                },
             }
         }
 
@@ -530,12 +533,14 @@ pub mod parse {
 
             match token.clone() {
                 Token::Keyword(key) => {
-                    let temp_sym = symbols.clone();
-                    if temp_sym.len() == 1 {
-                        gram_parts.push(Stream::Variable(temp_sym[0].clone()));
-                    } else if temp_sym.len() > 1 {
-                        gram_parts.push(Stream::Type(temp_sym[..temp_sym.len() - 1].join(" ")));
-                        gram_parts.push(Stream::Variable(temp_sym[temp_sym.len() - 1].clone()));
+                    let sym_len = symbols.len();
+
+                    // Allows for multiple tokens to be treated as one variable
+                    if sym_len == 1 {
+                        gram_parts.push(Stream::Variable(symbols[0].clone()));
+                    } else if sym_len > 1 {
+                        gram_parts.push(Stream::Type(symbols[..sym_len - 1].join(" ")));
+                        gram_parts.push(Stream::Variable(symbols[sym_len - 1].clone()));
                     }
 
                     match key.as_ref() {
@@ -592,6 +597,7 @@ pub mod parse {
                         comment_buf.push_str(format!("{} ", key).as_str());
                     }
 
+                    symbols.clear();
                     annotation = false;
                 }
                 Token::Symbol(word) => {

@@ -20,24 +20,12 @@ pub mod document {
     use model::model::Method;
     use model::model::Project;
 
-    /// Finds out whether a file is a java file
-    fn is_java_file(file: &str) -> bool {
-        let line_vec: Vec<&str> = file.split(".").collect::<Vec<&str>>();
-        let l_index = line_vec.len() - 1;
-
-        if line_vec[l_index].contains("java") {
-            true
-        } else {
-            false
-        }
-    }
-
     /// Traverses the file structure to find all java files for parsing.
     ///
     /// # Arguments
     ///
     /// * `start_dir` - The directory to start looking for java files in.
-    pub fn find_java_files(start_dir: &Path) -> Vec<PathBuf> {
+    pub fn find_file_type(start_dir: &Path, file_types: Vec<&str>) -> Vec<PathBuf> {
         let mut files: Vec<PathBuf> = Vec::new();
 
         // If the start directory is a single file return only that path
@@ -53,21 +41,26 @@ pub mod document {
             return files;
         }
 
-        // For every file or directory in the current directory find java files
+        // For every file or directory in the current directory find files
         for f in file_dir.unwrap() {
             let p = f.unwrap().path();
 
             if p.is_dir() {
                 let path = p.as_path();
-                let new_files = find_java_files(path);
+                let new_files = find_file_type(path, file_types.clone());
 
                 for n_file in new_files {
                     files.push(n_file.clone());
                 }
             } else if p.is_file() {
-                if is_java_file(p.as_path().file_name().unwrap().to_str().unwrap()) {
-                    files.push(p.clone());
-                }
+                let file_name = p.as_path().file_name().unwrap().to_str().unwrap();
+                let line_vec: Vec<&str> = file_name.split(".").collect::<Vec<&str>>();
+
+                file_types.iter().for_each(|file_type| {
+                    if line_vec[line_vec.len() - 1].contains(file_type) {
+                        files.push(p.clone());
+                    }
+                });
             }
         }
 
@@ -455,6 +448,16 @@ pub mod document {
         doc
     }
 
+    macro_rules! remove_old_md {
+        ($d:ident) => {
+            if find_file_type(Path::new($d), vec!["java", "class"]).len() > 0 {
+                panic!("Java files found exiting");
+            } else {
+                fs::remove_dir_all($d).expect("Could not delete files");
+            }
+        };
+    }
+
     /// Generates a markdown file for a java file
     /// Uses a Class struct to write the markdown
     ///
@@ -463,21 +466,29 @@ pub mod document {
     /// * `class` - The class struct containing the java documentation data
     /// * `dest` - The file path where the markdown file will be saved
     /// * `context` - The project context e.g. `github.com/user/repo`
-    pub fn generate_markdown(proj: Project, dest: &str, book: bool) {
+    pub fn generate_markdown(proj: Project, dest: &str, book: bool, clean: bool) {
         let mut app_doc = ApplicationDoc::new();
 
-        for mut class in proj.classes {
-            let name = format!("{}/{}.{}", dest, class.name, "md");
-            let mut file = File::create(name).unwrap();
+        if clean {
+            remove_old_md!(dest);
+        }
 
+        for mut class in proj.classes {
             let mut doc = gen_class_docs(class.clone());
             doc.push_str(gen_var_docs(class.variables, class.file_path.clone()).as_str());
             doc.push_str(gen_method_docs(class.methods, class.file_path).as_str());
+
+            let dir = format!("{}/{}", dest, class.package_name.replace(".", "/").clone());
+            fs::create_dir_all(dir.clone()).expect("File path not able to be created");
+            let mut file = File::create(format!("{}/{}.{}", dir, class.name, "md"))
+                .expect("Unable to create file for Class documentation");
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
             if book {
-                let name = format!("./markdown-book/src/{}.{}", class.name, "md");
+                let name = format!("{}/markdown-book/src/{}.{}", dest, class.name, "md");
+                fs::create_dir_all(format!("{}/markdown-book/src/", dest))
+                    .expect("File path not able to be created");
                 let mut file = File::create(name).unwrap();
 
                 file.write(doc.as_str().as_bytes())
@@ -490,12 +501,14 @@ pub mod document {
         }
 
         for mut inter in proj.interfaces {
-            let name = format!("{}/{}.{}", dest, inter.name, "md");
-            let mut file = File::create(name).unwrap();
-
             let mut doc = gen_interface_docs(inter.clone());
             doc.push_str(gen_var_docs(inter.variables, inter.file_path.clone()).as_str());
             doc.push_str(gen_method_docs(inter.methods, inter.file_path).as_str());
+
+            let dir = format!("{}/{}", dest, inter.package_name.replace(".", "/").clone());
+            fs::create_dir_all(dir.clone()).expect("File path not able to be created");
+            let mut file = File::create(format!("{}/{}.{}", dir, inter.name, "md"))
+                .expect("Unable to create file for Interface documentation");
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
@@ -505,14 +518,20 @@ pub mod document {
         }
 
         for mut enumeration in proj.enumerations {
-            let name = format!("{}/{}.{}", dest, enumeration.name, "md");
-            let mut file = File::create(name).unwrap();
-
             let mut doc = gen_enum_docs(enumeration.clone());
             doc.push_str(
                 gen_var_docs(enumeration.variables, enumeration.file_path.clone()).as_str(),
             );
             doc.push_str(gen_method_docs(enumeration.methods, enumeration.file_path).as_str());
+
+            let dir = format!(
+                "{}/{}",
+                dest,
+                enumeration.package_name.replace(".", "/").clone()
+            );
+            fs::create_dir_all(dir.clone()).expect("File path not able to be created");
+            let mut file = File::create(format!("{}/{}.{}", dir, enumeration.name, "md"))
+                .expect("flubasdajlkfj");
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
@@ -521,7 +540,8 @@ pub mod document {
             println!("{}.{} was created", enumeration.name, "md");
         }
 
-        let mut app_file = File::create(format!("{}/Contents.md", dest)).unwrap();
+        let mut app_file = File::create(format!("{}/Contents.md", dest))
+            .expect("Unable to create file for application contents");
         app_file
             .write(gen_application_doc(app_doc).as_str().as_bytes())
             .expect("Not able to write to file");
