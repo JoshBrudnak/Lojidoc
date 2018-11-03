@@ -59,10 +59,12 @@ fn get_project<'a>(files: &Vec<PathBuf>) -> Result<Project, &'a str> {
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
 /// * `context` - The project context e.g. `github.com/user/repo`
+/// * `ignore` - Permission to ignore when parsing member variables and methods
 /// * `verbose` - Whether the program will output verbose logging
 pub fn document_single(
     file_paths: Vec<PathBuf>,
     dest: String,
+    ignore: String,
     verbose: bool,
     book: bool,
     clean: bool,
@@ -71,7 +73,7 @@ pub fn document_single(
         println!("{}", lint_project(get_project(&file_paths).unwrap()));
     }
 
-    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), book, clean);
+    generate_markdown(get_project(&file_paths).unwrap(), dest.as_str(), ignore, book, clean);
 
     println!(
         "\nDocumentation finished. Generated {} markdown files.",
@@ -85,9 +87,11 @@ pub fn document_single(
 ///
 /// * `file_paths` - A vector of the file paths of java files
 /// * `dest` - The file path where the markdown will be saved
+/// * `ignore` - Permission to ignore when parsing member variables and methods
 pub fn document(
     file_paths: Vec<PathBuf>,
     dest: String,
+    ignore: String,
     verbose: bool,
     book: bool,
     clean: bool,
@@ -105,6 +109,7 @@ pub fn document(
     for i in 0..pool_size {
         let file_cp = files.clone();
         let new_dest = safe_dest.clone();
+        let ignore_cp = ignore.clone();
 
         pool.execute(move || {
             let mut project: Project = Project::new();
@@ -131,7 +136,7 @@ pub fn document(
                 }
             }
 
-            generate_markdown(project, new_dest.as_str(), book, clean);
+            generate_markdown(project, new_dest.as_str(), ignore_cp, book, clean);
         });
     }
 
@@ -154,6 +159,12 @@ fn main() {
                 .required(true)
                 .help("Set the input directory to use")
                 .index(1),
+        ).arg(
+            Arg::with_name("ignore")
+                .value_name("STRING")
+                .required(false)
+                .short("i")
+                .help("Ignore fields with a certain permission"),
         ).arg(
             Arg::with_name("book")
                 .value_name("FILE")
@@ -196,6 +207,7 @@ fn main() {
     let book = matches.value_of("book").unwrap_or("").to_string();
     let file_paths = find_file_type(Path::new(dir.clone().as_str()), vec!["java"]);
     let multi_thread = matches.is_present("multi_thread");
+    let ignore = matches.value_of("ignore").unwrap_or("").to_string();
     let lint = matches.is_present("lint");
     let clean = matches.is_present("clean");
     let verbose = matches.is_present("verbose");
@@ -218,11 +230,11 @@ fn main() {
         }
 
         if multi_thread {
-            document(file_paths, dest.clone(), verbose, gen_book, clean);
+            document(file_paths, dest.clone(), ignore, verbose, gen_book, clean);
         } else if lint {
             println!("{}", lint_project(get_project(&file_paths).unwrap()));
         } else {
-            document_single(file_paths, dest.clone(), verbose, gen_book, clean);
+            document_single(file_paths, dest.clone(), ignore, verbose, gen_book, clean);
         }
 
         if book != "" {

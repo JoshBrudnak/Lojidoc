@@ -72,7 +72,8 @@ $ lojidoc ~/Project/src/java/ -l -s
 | v    | Generate documentation for a project and provide verbose output |
 | V    | Prints the version information                                  |
 
-| Option    | Description                                                    |
-| --------- | -------------------------------------------------------------- |
-| d <FILE>  | Sets the destination directory of the created markdown files   |
-| b <FILE>  | Create a mdbook using the generated documentation              |
+| Option     | Description                                                    |
+| ---------- | -------------------------------------------------------------- |
+| d <FILE>   | Sets the destination directory of the created markdown files   |
+| b <FILE>   | Create a mdbook using the generated documentation              |
+| i <STRING> | Ignore fields with a certain permission
