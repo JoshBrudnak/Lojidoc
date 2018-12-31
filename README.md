@@ -64,13 +64,14 @@ $ lojidoc ~/Project/src/java/ -l -s
 
 ## Command line arguments
 
-| Flag | Description                                                     |
-| ---- | --------------------------------------------------------------- |
-| m    | Use multiple threads to execute the program                     |
-| l    | Check a java project for incorrect or missing javadocs          |
-| h    | Prints help information                                         |
-| v    | Generate documentation for a project and provide verbose output |
-| V    | Prints the version information                                  |
+| Flag | Description                                                      |
+| ---- | ---------------------------------------------------------------- |
+| c    | Delete the destination directory before generating documentation |
+| m    | Use multiple threads to execute the program                      |
+| l    | Check a java project for incorrect or missing javadocs           |
+| h    | Prints help information                                          |
+| v    | Generate documentation for a project and provide verbose output  |
+| V    | Prints the version information                                   |
 
 | Option     | Description                                                    |
 | ---------- | -------------------------------------------------------------- |
