@@ -8,6 +8,7 @@ pub mod member;
 pub mod method;
 pub mod object;
 pub mod project;
+pub mod options;
 
 pub mod model {
     //! Module that contains all necessary data stuctures for parsing javadocs and generating docs
@@ -24,6 +25,7 @@ pub mod model {
     pub use model::method::Method;
     pub use model::object::Object;
     pub use model::object::ObjectState;
+    pub use model::options::Options;
     pub use model::project::Project;
 
     pub enum ObjectType {

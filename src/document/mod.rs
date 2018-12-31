@@ -14,6 +14,7 @@ pub mod document {
     use git2::Repository;
     use model::contents::ApplicationDoc;
     use model::model::Class;
+    use model::model::Options;
     use model::model::Enumeration;
     use model::model::Interface;
     use model::model::Member;
@@ -473,11 +474,12 @@ pub mod document {
     /// * `dest` - The file path where the markdown file will be saved
     /// * `ignore` - Permission to ignore when parsing member variables and methods
     /// * `context` - The project context e.g. `github.com/user/repo`
-    pub fn generate_markdown(proj: Project, dest: &str, ignore: String, book: bool, clean: bool) {
-        println!("{}", dest);
+    pub fn generate_markdown(proj: Project, options: Options) {
+        println!("{}", options.dest);
         let mut app_doc = ApplicationDoc::new();
 
-        if clean {
+        if options.clean {
+            let dest = options.dest.as_str();
             remove_old_md!(dest);
         }
 
@@ -485,20 +487,20 @@ pub mod document {
             let mut doc = gen_class_docs(class.clone());
 
             doc.push_str(
-                gen_var_docs(class.variables, class.file_path.clone(), ignore.clone()).as_str(),
+                gen_var_docs(class.variables, class.file_path.clone(), options.ignore.clone()).as_str(),
             );
-            doc.push_str(gen_method_docs(class.methods, class.file_path, ignore.clone()).as_str());
+            doc.push_str(gen_method_docs(class.methods, class.file_path, options.ignore.clone()).as_str());
 
-            let dir = format!("{}/{}", dest, class.package_name.replace(".", "/").clone());
+            let dir = format!("{}/{}", options.dest, class.package_name.replace(".", "/").clone());
             fs::create_dir_all(dir.clone()).expect("File path not able to be created");
             let mut file = File::create(format!("{}/{}.{}", dir, class.name, "md"))
                 .expect("Unable to create file for Class documentation");
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
-            if book {
-                let name = format!("{}/markdown-book/src/{}.{}", dest, class.name, "md");
-                fs::create_dir_all(format!("{}/markdown-book/src/", dest))
+            if options.book {
+                let name = format!("{}/markdown-book/src/{}.{}", options.dest, class.name, "md");
+                fs::create_dir_all(format!("{}/markdown-book/src/", options.dest))
                     .expect("File path not able to be created");
                 let mut file = File::create(name).unwrap();
 
@@ -515,11 +517,11 @@ pub mod document {
             let mut doc = gen_interface_docs(inter.clone());
 
             doc.push_str(
-                gen_var_docs(inter.variables, inter.file_path.clone(), ignore.clone()).as_str(),
+                gen_var_docs(inter.variables, inter.file_path.clone(), options.ignore.clone()).as_str(),
             );
-            doc.push_str(gen_method_docs(inter.methods, inter.file_path, ignore.clone()).as_str());
+            doc.push_str(gen_method_docs(inter.methods, inter.file_path, options.ignore.clone()).as_str());
 
-            let dir = format!("{}/{}", dest, inter.package_name.replace(".", "/").clone());
+            let dir = format!("{}/{}", options.dest, inter.package_name.replace(".", "/").clone());
             fs::create_dir_all(dir.clone()).expect("File path not able to be created");
             let mut file = File::create(format!("{}/{}.{}", dir, inter.name, "md"))
                 .expect("Unable to create file for Interface documentation");
@@ -538,17 +540,17 @@ pub mod document {
                 gen_var_docs(
                     enumeration.variables,
                     enumeration.file_path.clone(),
-                    ignore.clone(),
+                    options.ignore.clone(),
                 ).as_str(),
             );
             doc.push_str(
-                gen_method_docs(enumeration.methods, enumeration.file_path, ignore.clone())
+                gen_method_docs(enumeration.methods, enumeration.file_path, options.ignore.clone())
                     .as_str(),
             );
 
             let dir = format!(
                 "{}/{}",
-                dest,
+                options.dest,
                 enumeration.package_name.replace(".", "/").clone()
             );
             fs::create_dir_all(dir.clone()).expect("File path not able to be created");
@@ -562,10 +564,10 @@ pub mod document {
             println!("{}.{} was created", enumeration.name, "md");
         }
 
-        let mut app_file = File::create(format!("{}/Contents.md", dest))
+        let mut app_file = File::create(format!("{}/Contents.md", options.dest))
             .expect("Unable to create file for application contents");
         app_file
-            .write(gen_application_doc(app_doc, dest).as_str().as_bytes())
+            .write(gen_application_doc(app_doc, options.dest.as_str()).as_str().as_bytes())
             .expect("Not able to write to file");
     }
 
