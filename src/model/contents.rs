@@ -2,6 +2,7 @@
 /// Struct for a java package. stores the name and member files
 pub struct Package {
     pub name: String,
+    pub package_path: String,
     pub members: Vec<String>,
 }
 
@@ -30,7 +31,7 @@ impl ApplicationDoc {
             packages: Vec::new(),
         }
     }
-    pub fn add_package_class(&mut self, package: String, class: String) {
+    pub fn add_package_class(&mut self, package: String, dir: String, class: String) {
         let mut found = false;
 
         for (i, p) in self.packages.clone().iter().enumerate() {
@@ -43,6 +44,7 @@ impl ApplicationDoc {
         if !found {
             self.packages.push(Package {
                 name: package,
+                package_path: dir,
                 members: vec![class],
             });
         }

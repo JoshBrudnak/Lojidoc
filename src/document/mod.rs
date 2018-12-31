@@ -439,13 +439,13 @@ pub mod document {
     /// # Arguments
     ///
     /// * `methods` - The vector of class methods to be documented
-    pub fn gen_application_doc(app: ApplicationDoc) -> String {
+    pub fn gen_application_doc(app: ApplicationDoc, dest: &str) -> String {
         let mut doc = String::from("# Application Contents\n\n");
 
         for p in app.packages {
             doc.push_str(format!("## {}\n", p.name).as_str());
             for class in p.members {
-                doc.push_str(format!("- [{}]({}.md)\n", class, class).as_str());
+                doc.push_str(format!("- [{}](.{}/{}.md)\n", class, p.package_path.split(dest).collect::<Vec<&str>>().join(""), class).as_str());
             }
 
             doc.push_str("\n\n");
@@ -474,6 +474,7 @@ pub mod document {
     /// * `ignore` - Permission to ignore when parsing member variables and methods
     /// * `context` - The project context e.g. `github.com/user/repo`
     pub fn generate_markdown(proj: Project, dest: &str, ignore: String, book: bool, clean: bool) {
+        println!("{}", dest);
         let mut app_doc = ApplicationDoc::new();
 
         if clean {
@@ -505,7 +506,7 @@ pub mod document {
                     .expect("Not able to write to file");
             }
 
-            app_doc.add_package_class(class.package_name, class.name.clone());
+            app_doc.add_package_class(class.package_name, dir, class.name.clone());
 
             println!("{}.{} was created", class.name, "md");
         }
@@ -525,7 +526,7 @@ pub mod document {
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
-            app_doc.add_package_class(inter.package_name, inter.name.clone());
+            app_doc.add_package_class(inter.package_name, dir, inter.name.clone());
 
             println!("{}.{} was created", inter.name, "md");
         }
@@ -552,11 +553,11 @@ pub mod document {
             );
             fs::create_dir_all(dir.clone()).expect("File path not able to be created");
             let mut file = File::create(format!("{}/{}.{}", dir, enumeration.name, "md"))
-                .expect("flubasdajlkfj");
+                .expect("Not able to create enumeration file");
             file.write(doc.as_str().as_bytes())
                 .expect("Not able to write to file");
 
-            app_doc.add_package_class(enumeration.package_name, enumeration.name.clone());
+            app_doc.add_package_class(enumeration.package_name, dir, enumeration.name.clone());
 
             println!("{}.{} was created", enumeration.name, "md");
         }
@@ -564,7 +565,7 @@ pub mod document {
         let mut app_file = File::create(format!("{}/Contents.md", dest))
             .expect("Unable to create file for application contents");
         app_file
-            .write(gen_application_doc(app_doc).as_str().as_bytes())
+            .write(gen_application_doc(app_doc, dest).as_str().as_bytes())
             .expect("Not able to write to file");
     }
 
