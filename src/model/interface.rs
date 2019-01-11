@@ -6,6 +6,7 @@ use model::method::Method;
 /// Includes package name, imports, method templates, and other data
 pub struct Interface {
     pub package_name: String,
+    pub signature: String,
     pub deprecation: String,
     pub access: String,
     pub file_path: String,
@@ -33,6 +34,7 @@ impl Interface {
 
         Interface {
             package_name: self.package_name.clone(),
+            signature: self.signature.clone(),
             dependencies: self.dependencies.clone(),
             deprecation: self.deprecation.clone(),
             access: self.access.clone(),

@@ -12,6 +12,7 @@ pub struct Param {
 /// Struct containing method data from the javadoc and method declaration
 pub struct Method {
     pub line_num: String,
+    pub signature: String,
     pub parameters: Vec<Param>,
     pub modifiers: Vec<String>,
     pub name: String,
@@ -29,6 +30,7 @@ impl Method {
             exceptions: Vec::new(),
             line_num: String::new(),
             name: String::new(),
+            signature: String::new(),
             privacy: String::new(),
             description: String::new(),
             return_type: String::new(),
@@ -55,6 +57,7 @@ impl Method {
             modifiers: new_modifiers,
             exceptions: new_excepts,
             name: self.name.clone(),
+            signature: self.signature.clone(),
             privacy: self.privacy.clone(),
             description: self.description.clone(),
             return_type: self.return_type.clone(),
@@ -62,6 +65,9 @@ impl Method {
     }
     pub fn ch_line_num(&mut self, value: String) {
         self.line_num = value;
+    }
+    pub fn ch_signature(&mut self, value: String) {
+        self.signature = value;
     }
     pub fn ch_privacy(&mut self, value: String) {
         self.privacy = value;

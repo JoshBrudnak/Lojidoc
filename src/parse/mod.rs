@@ -149,7 +149,7 @@ pub mod parse {
     /// * `gram_parts` - A vector of tokens from the object's declaration
     /// * `java_doc` - The java doc struct with the documentation for the class
     /// * `class` - The Class struct to be modified with the new information
-    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, ob: &mut Object) {
+    fn get_object(gram_parts: Vec<Stream>, java_doc: &Doc, sign: String, ob: &mut Object) {
         let mut parse_state = ObjectParseState::Other;
 
         for i in 0..gram_parts.len() {
@@ -180,6 +180,7 @@ pub mod parse {
             }
         }
 
+        ob.ch_signature(sign.clone());
         ob.ch_description(java_doc.description.clone());
         ob.ch_author(java_doc.author.clone());
         ob.ch_version(java_doc.version.clone());
@@ -201,7 +202,7 @@ pub mod parse {
     ///
     /// * `gram_parts` - A vector of tokens from the method's declaration
     /// * `_java_doc` - The java doc struct with the documentation for the method
-    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc, line_num: String) -> Method {
+    fn get_method(gram_parts: Vec<Stream>, java_doc: &Doc, line_num: String, signature: String) -> Method {
         let mut method = Method::new();
         let mut param_type = String::new();
         let mut parse_state = MethodParseState::Other;
@@ -250,6 +251,7 @@ pub mod parse {
             }
         }
         method.ch_line_num(line_num);
+        method.ch_signature(signature);
 
         if java_doc.return_desc != "" {
             method.ch_return_type(java_doc.return_desc.clone());
@@ -272,7 +274,7 @@ pub mod parse {
     /// # Arguments
     ///
     /// * `gram_parts` - A vector of tokens in the member variable expression
-    fn get_var(gram_parts: Vec<Stream>, line_num: String) -> Member {
+    fn get_var(gram_parts: Vec<Stream>, line_num: String, signature: String) -> Member {
         let mut member = Member::new();
         let mut member_name = false;
 
@@ -306,6 +308,8 @@ pub mod parse {
             }
         }
         member.ch_line_number(line_num);
+        member.ch_signature(signature);
+
 
         member
     }
@@ -397,12 +401,14 @@ pub mod parse {
         let mut line_number = 1;
         let mut blob = content.chars();
         let keywords = get_keywords();
+        let mut curr_line = String::new();
 
         tokens.push(Token::LineNumber(line_number.to_string()));
 
         loop {
             match blob.next() {
-                Some(ch) => match ch {
+                Some(ch) => {
+                    match ch {
                     ' ' | '\t' | '\r' => {
                         if block_depth < 2 {
                             push_token(&curr_token, &mut tokens, &keywords);
@@ -416,7 +422,9 @@ pub mod parse {
 
                         line_number = line_number + 1;
                         tokens.push(Token::LineNumber(line_number.to_string()));
+                        tokens.push(Token::Sign(curr_line));
                         curr_token = String::new();
+                        curr_line = String::new();
                     }
                     ',' => {
                         if block_depth < 2 {
@@ -466,6 +474,10 @@ pub mod parse {
                             curr_token.push_str(ch.to_string().as_str());
                         }
                     }
+
+                }
+                curr_line.push_str(ch.to_string().as_str());
+
                 },
                 None => break,
             }
@@ -520,6 +532,7 @@ pub mod parse {
         let mut gram_parts: Vec<Stream> = Vec::new();
         let mut comment_buf = String::new();
         let mut line_num = String::new();
+        let mut signature = String::new();
 
         for token in tokens.clone() {
             if ignore {
@@ -715,13 +728,13 @@ pub mod parse {
                                             _ => println!("Pattern not supported"),
                                         },
                                         _ => object
-                                            .add_variable(get_var(temp_gram, line_num.clone())),
+                                            .add_variable(get_var(temp_gram, line_num.clone(), signature.clone())),
                                     }
                                 }
                             } else {
                                 match object.state {
                                     ObjectState::Class => {
-                                        object.add_variable(get_var(temp_gram, line_num.clone()))
+                                        object.add_variable(get_var(temp_gram, line_num.clone(), signature.clone()))
                                     }
                                     ObjectState::Enumeration => {
                                         object.ch_fields(get_enum_fields(temp_gram))
@@ -730,16 +743,17 @@ pub mod parse {
                                         temp_gram,
                                         &jdoc,
                                         line_num.clone(),
+                                        signature.clone(),
                                     )),
                                 }
                             }
                         }
                         "{" => match parse_state {
                             ParseState::Interface | ParseState::Class | ParseState::Enum => {
-                                get_object(temp_gram.clone(), &jdoc, &mut object)
+                                get_object(temp_gram.clone(), &jdoc, signature.clone(), &mut object)
                             }
                             ParseState::Other => {
-                                object.add_method(get_method(temp_gram, &jdoc, line_num.clone()))
+                                object.add_method(get_method(temp_gram, &jdoc, line_num.clone(), signature.clone()))
                             }
                         },
                         _ => {
@@ -757,6 +771,7 @@ pub mod parse {
                     symbols.clear();
                 }
                 Token::LineNumber(num) => line_num = num,
+                Token::Sign(line) => signature = line,
             }
         }
 

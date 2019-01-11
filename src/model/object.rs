@@ -20,6 +20,7 @@ pub enum ObjectState {
 pub struct Object {
     pub state: ObjectState,
     pub file_path: String,
+    pub signature: String,
     pub package_name: String,
     pub deprecation: String,
     pub license: String,
@@ -44,6 +45,7 @@ impl Object {
             state: ObjectState::Unset,
             package_name: String::new(),
             file_path: String::new(),
+            signature: String::new(),
             dependencies: Vec::new(),
             deprecation: String::new(),
             license: String::new(),
@@ -83,6 +85,7 @@ impl Object {
         Class {
             parent: self.parent.clone(),
             file_path: self.file_path.clone(),
+            signature: self.signature.clone(),
             package_name: self.package_name.clone(),
             license: self.license.clone(),
             dependencies: self.dependencies.clone(),
@@ -112,6 +115,7 @@ impl Object {
 
         Interface {
             package_name: self.package_name.clone(),
+            signature: self.signature.clone(),
             dependencies: self.dependencies.clone(),
             deprecation: self.deprecation.clone(),
             access: self.access.clone(),
@@ -168,6 +172,9 @@ impl Object {
     }
     pub fn ch_access(&mut self, value: String) {
         self.access = value;
+    }
+    pub fn ch_signature(&mut self, value: String) {
+        self.signature = value;
     }
     pub fn ch_state(&mut self, value: ObjectState) {
         self.state = value;

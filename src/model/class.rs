@@ -7,6 +7,7 @@ use model::method::Method;
 /// Includes package name, imports, methods, and other data
 pub struct Class {
     pub file_path: String,
+    pub signature: String,
     pub package_name: String,
     pub deprecation: String,
     pub license: String,
@@ -29,6 +30,7 @@ impl Class {
         Class {
             package_name: String::new(),
             file_path: String::new(),
+            signature: String::new(),
             dependencies: Vec::new(),
             deprecation: String::new(),
             license: String::new(),
@@ -67,6 +69,7 @@ impl Class {
         Class {
             parent: self.parent.clone(),
             file_path: self.file_path.clone(),
+            signature: self.signature.clone(),
             package_name: self.package_name.clone(),
             license: self.license.clone(),
             dependencies: self.dependencies.clone(),

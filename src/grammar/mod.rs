@@ -25,6 +25,7 @@ pub mod grammar {
     pub enum Token {
         Symbol(String),
         Keyword(String),
+        Sign(String),
         Join,
         ParamStart,
         ParamEnd,

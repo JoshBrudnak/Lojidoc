@@ -112,6 +112,7 @@ pub mod document {
             doc.push_str(
                 format!("# Class {} [[src]]({})  \n\n", class.name, class.file_path).as_str(),
             );
+            doc.push_str(format!(" > {}  \n\n", class.signature.trim()).as_str());
         } else {
             doc.push_str(format!("# Class {}\n\n", class.name).as_str());
         }
@@ -197,6 +198,7 @@ pub mod document {
                     inter.name, inter.file_path
                 ).as_str(),
             );
+            doc.push_str(format!(" > {}  \n\n", inter.signature.trim()).as_str());
         } else {
             doc.push_str(format!("# Interface {}\n\n", inter.name).as_str());
         }
@@ -322,6 +324,7 @@ pub mod document {
                             member.var_type, member.name, file_path
                         ).as_str(),
                     );
+                    doc.push_str(format!(" > {}  \n\n", member.signature.trim()).as_str());
                 } else {
                     doc.push_str(format!("#### {} {}\n\n", member.var_type, member.name).as_str());
                 }
