@@ -84,43 +84,39 @@ fn test_doc_lex() {
                     * The sample description
                     *
                     * @param args Arguments
-                    * @param str A string
-                    * @return The value
                     *
                     */";
 
     let tokens = lex_contents(&j_inter.to_string());
+    println!("{:?}", tokens);
 
     assert_eq!(Token::LineNumber(String::from("1")), tokens[0]);
     assert_eq!(Token::Symbol(String::from("/**")), tokens[1]);
 
     assert_eq!(Token::LineNumber(String::from("2")), tokens[2]);
-    assert_eq!(Token::Symbol(String::from("*")), tokens[3]);
-    assert_eq!(Token::Symbol(String::from("The")), tokens[4]);
-    assert_eq!(Token::Symbol(String::from("sample")), tokens[5]);
-    assert_eq!(Token::Symbol(String::from("description")), tokens[6]);
+    assert_eq!(Token::Sign(String::from("/**")), tokens[3]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[4]);
+    assert_eq!(Token::Symbol(String::from("The")), tokens[5]);
+    assert_eq!(Token::Symbol(String::from("sample")), tokens[6]);
+    assert_eq!(Token::Symbol(String::from("description")), tokens[7]);
 
-    assert_eq!(Token::LineNumber(String::from("3")), tokens[7]);
-    assert_eq!(Token::Symbol(String::from("*")), tokens[8]);
-
-    assert_eq!(Token::LineNumber(String::from("4")), tokens[9]);
+    assert_eq!(Token::LineNumber(String::from("3")), tokens[8]);
+    assert_eq!(Token::Sign(String::from("* The sample description")), tokens[9]);
     assert_eq!(Token::Symbol(String::from("*")), tokens[10]);
-    assert_eq!(Token::Keyword(String::from("@param")), tokens[11]);
-    assert_eq!(Token::Symbol(String::from("args")), tokens[12]);
-    assert_eq!(Token::Symbol(String::from("Arguments")), tokens[13]);
 
-    assert_eq!(Token::LineNumber(String::from("5")), tokens[14]);
-    assert_eq!(Token::Symbol(String::from("*")), tokens[15]);
-    assert_eq!(Token::Keyword(String::from("@param")), tokens[16]);
-    assert_eq!(Token::Symbol(String::from("str")), tokens[17]);
-    assert_eq!(Token::Symbol(String::from("A")), tokens[18]);
-    assert_eq!(Token::Symbol(String::from("string")), tokens[19]);
+    assert_eq!(Token::LineNumber(String::from("4")), tokens[11]);
+    assert_eq!(Token::Sign(String::from("*")), tokens[12]);
+    assert_eq!(Token::Symbol(String::from("*")), tokens[13]);
+    assert_eq!(Token::Keyword(String::from("@param")), tokens[14]);
+    assert_eq!(Token::Symbol(String::from("args")), tokens[15]);
+    assert_eq!(Token::Symbol(String::from("Arguments")), tokens[16]);
 
+    assert_eq!(Token::LineNumber(String::from("5")), tokens[17]);
+    assert_eq!(Token::Sign(String::from("* @param args Arguments")), tokens[18]);
+
+    assert_eq!(Token::Symbol(String::from("*")), tokens[19]);
     assert_eq!(Token::LineNumber(String::from("6")), tokens[20]);
-    assert_eq!(Token::Symbol(String::from("*")), tokens[21]);
-    assert_eq!(Token::Keyword(String::from("@return")), tokens[22]);
-    assert_eq!(Token::Symbol(String::from("The")), tokens[23]);
-    assert_eq!(Token::Symbol(String::from("value")), tokens[24]);
+    assert_eq!(Token::Sign(String::from("*")), tokens[21]);
 }
 
 #[test]

@@ -422,7 +422,7 @@ pub mod parse {
 
                         line_number = line_number + 1;
                         tokens.push(Token::LineNumber(line_number.to_string()));
-                        tokens.push(Token::Sign(curr_line));
+                        tokens.push(Token::Sign(curr_line.as_str().trim().to_string()));
                         curr_token = String::new();
                         curr_line = String::new();
                     }
