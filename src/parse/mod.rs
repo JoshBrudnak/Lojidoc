@@ -525,7 +525,6 @@ pub mod parse {
         let mut doc = false;
         let mut comment = false;
         let mut jdoc = Doc::new();
-        let mut _jdoc_errs = String::new();
         let mut symbols: Vec<String> = Vec::new();
         let mut doc_tokens: Vec<JdocToken> = Vec::new();
         let mut method: Method = Method::new();
@@ -633,7 +632,9 @@ pub mod parse {
                             comment = true;
                         }
                         _ => {
-                            if doc {
+                            if word.contains("//") {
+                                comment = true;
+                            } else if doc {
                                 if is_keyword!(word, get_jdoc_keywords()) {
                                     doc_tokens.push(JdocToken::Keyword(word.clone()));
                                 } else {
@@ -781,6 +782,7 @@ pub mod parse {
             ObjectState::Enumeration => return ObjectType::Enumeration(object.to_enumeration()),
             ObjectState::Unset => {
                 println!("Java file type not supported. Supported types: class, interface, enum");
+                println!("{:?}", tokens);
                 return ObjectType::Class(object.to_class());
             }
         }
