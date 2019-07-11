@@ -1,6 +1,7 @@
 use model::exception::Exception;
 use model::member::Member;
 use model::method::Method;
+use model::spring_data::SpringClass;
 
 #[derive(Debug)]
 /// Struct containing class documentation information
@@ -16,6 +17,7 @@ pub struct Class {
     pub version: String,
     pub author: String,
     pub name: String,
+    pub spring_data: SpringClass,
     pub description: String,
     pub exceptions: Vec<Exception>,
     pub interfaces: Vec<String>,
@@ -40,6 +42,7 @@ impl Class {
             version: String::new(),
             author: String::new(),
             name: String::new(),
+            spring_data: SpringClass::new(),
             exceptions: Vec::new(),
             description: String::new(),
             modifiers: Vec::new(),
@@ -78,6 +81,7 @@ impl Class {
             version: self.version.clone(),
             author: self.author.clone(),
             name: self.name.clone(),
+            spring_data: self.spring_data.clone(),
             description: self.description.clone(),
             exceptions: new_except,
             interfaces: self.interfaces.clone(),

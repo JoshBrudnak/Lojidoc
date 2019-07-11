@@ -1,4 +1,5 @@
 use model::exception::Exception;
+use model::spring_data::SpringMethod;
 
 #[derive(Debug, Clone)]
 /// Struct representing method parameter data contained in javadoc and method declaration
@@ -15,6 +16,7 @@ pub struct Method {
     pub signature: String,
     pub parameters: Vec<Param>,
     pub modifiers: Vec<String>,
+    pub spring_data: SpringMethod,
     pub name: String,
     pub privacy: String,
     pub description: String,
@@ -27,6 +29,7 @@ impl Method {
         Method {
             parameters: Vec::new(),
             modifiers: Vec::new(),
+            spring_data: SpringMethod::new(),
             exceptions: Vec::new(),
             line_num: String::new(),
             name: String::new(),
@@ -55,6 +58,7 @@ impl Method {
             line_num: self.line_num.clone(),
             parameters: new_params,
             modifiers: new_modifiers,
+            spring_data: SpringMethod::new(),
             exceptions: new_excepts,
             name: self.name.clone(),
             signature: self.signature.clone(),

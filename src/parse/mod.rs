@@ -313,6 +313,7 @@ pub mod parse {
 
         member
     }
+
     /// Handles token streams for member variables and returns a `Member` struct
     /// Containing the member variable's data
     ///

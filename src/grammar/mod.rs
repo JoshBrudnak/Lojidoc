@@ -30,6 +30,7 @@ pub mod grammar {
         ParamStart,
         ParamEnd,
         LineNumber(String),
+        Spring(String),
         ExpressionEnd(String),
     }
 
@@ -98,6 +99,11 @@ pub mod grammar {
             "Service",
             "Component",
             "RequestMapping",
+            "GetMapping",
+            "PostMapping",
+            "PutMapping",
+            "DeleteMapping",
+            "PatchMapping",
             "Value",
             "Bean",
         ]

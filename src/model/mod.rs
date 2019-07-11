@@ -9,6 +9,7 @@ pub mod method;
 pub mod object;
 pub mod project;
 pub mod options;
+pub mod spring_data;
 
 pub mod model {
     //! Module that contains all necessary data stuctures for parsing javadocs and generating docs
@@ -27,6 +28,10 @@ pub mod model {
     pub use model::object::ObjectState;
     pub use model::options::Options;
     pub use model::project::Project;
+    pub use model::spring_data::SpringClass;
+    pub use model::spring_data::SpringMethod;
+    pub use model::spring_data::SpringMember;
+    pub use model::spring_data::RequestMap;
 
     pub enum ObjectType {
         Class(Class),
